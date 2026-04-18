@@ -1,0 +1,15 @@
+export const TemplatePosition = {
+  id: 'string',
+  template_id: 'string',
+  element_type_id: 'string',
+  label: 'string',
+  x: 0,
+  y: 0,
+  width: 0,
+  height: 0,
+  rotation: 0,
+  created_at: 'Date',
+  updated_at: 'Date',
+  template: 'Template',
+  element_type: 'ElementType',
+};

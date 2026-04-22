@@ -1,10 +1,10 @@
-import { NextAuthOptions } from "next-auth";
-import CredentialsProvider from "next-auth/providers/credentials";
+import { NextAuthOptions } from 'next-auth';
+import CredentialsProvider from 'next-auth/providers/credentials';
 
 export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
-      name: "Credentials",
+      name: 'Credentials',
       credentials: {
         email: {},
         password: {},
@@ -12,10 +12,10 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials) {
         // 🔥 ini contoh, sesuaikan sama DB lu
         const user = {
-          id: "1",
+          id: '1',
           email: credentials?.email,
-          role: "ADMIN",
-          organization_id: "org-123",
+          role: 'ADMIN',
+          organization_id: 'org-123',
         };
 
         if (!user) return null;
@@ -26,7 +26,7 @@ export const authOptions: NextAuthOptions = {
   ],
 
   session: {
-    strategy: "jwt", // 🔥 penting
+    strategy: 'jwt', // 🔥 penting
   },
 
   callbacks: {
@@ -50,7 +50,7 @@ export const authOptions: NextAuthOptions = {
   },
 
   pages: {
-    signIn: "/",
+    signIn: '/',
   },
 
   secret: process.env.NEXTAUTH_SECRET,

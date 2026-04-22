@@ -1,14 +1,20 @@
 import { NextResponse } from 'next/server';
 import { ICreateSubscription } from '@/types/subscription';
-import { getAllSubscriptions, createSubscription } from '@/server/services/subscription';
+import {
+  getAllSubscriptions,
+  createSubscription,
+} from '@/server/services/subscription';
 
 export async function GET() {
-    try {
-        return NextResponse.json({ data: await getAllSubscriptions() });
-    } catch (e: any) {
-        console.error('GET subscriptions ERROR:', e);
-        return NextResponse.json({ message: e?.message || 'Server error' }, { status: 500 });
-    }
+  try {
+    return NextResponse.json({ data: await getAllSubscriptions() });
+  } catch (e: any) {
+    console.error('GET subscriptions ERROR:', e);
+    return NextResponse.json(
+      { message: e?.message || 'Server error' },
+      { status: 500 }
+    );
+  }
 }
 
 export async function POST(req: Request) {
@@ -26,7 +32,10 @@ export async function POST(req: Request) {
     for (const s of body) {
       if (!s.organization_id || !s.plan_id || !s.start_date || !s.end_date) {
         return NextResponse.json(
-          { message: 'Setiap item harus memiliki organization_id, plan_id, start_date, dan end_date' },
+          {
+            message:
+              'Setiap item harus memiliki organization_id, plan_id, start_date, dan end_date',
+          },
           { status: 400 }
         );
       }

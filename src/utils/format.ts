@@ -1,7 +1,10 @@
 export function formatIDR(value: number | string | null | undefined) {
   if (value === null || value === undefined || value === '') return '';
 
-  const number = typeof value === 'number' ? value : Number(String(value).replace(/[^\d]/g, ''));
+  const number =
+    typeof value === 'number'
+      ? value
+      : Number(String(value).replace(/[^\d]/g, ''));
 
   if (Number.isNaN(number)) return '';
 

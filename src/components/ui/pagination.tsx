@@ -5,34 +5,47 @@ import { cn } from '@/lib/utils';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 const Pagination = ({ className, ...props }: React.ComponentProps<'nav'>) => (
-  <nav role="navigation" aria-label="pagination" className={cn('mx-auto flex w-full justify-end', className)} {...props} />
+  <nav
+    role="navigation"
+    aria-label="pagination"
+    className={cn('mx-auto flex w-full justify-end', className)}
+    {...props}
+  />
 );
 Pagination.displayName = 'Pagination';
 
-const PaginationContent = React.forwardRef<HTMLUListElement, React.ComponentProps<'ul'>>(
-  ({ className, ...props }, ref) => (
-    <ul
-      ref={ref}
-      className={cn(
-        'flex flex-row items-center overflow-hidden rounded-lg bg-white dark:bg-dark shadow-sm',
-        className
-      )}
-      {...props}
-    />
-  )
-);
+const PaginationContent = React.forwardRef<
+  HTMLUListElement,
+  React.ComponentProps<'ul'>
+>(({ className, ...props }, ref) => (
+  <ul
+    ref={ref}
+    className={cn(
+      'flex flex-row items-center overflow-hidden rounded-lg bg-white dark:bg-dark shadow-sm',
+      className
+    )}
+    {...props}
+  />
+));
 PaginationContent.displayName = 'PaginationContent';
 
-const PaginationItem = React.forwardRef<HTMLLIElement, React.ComponentProps<'li'>>(
-  ({ className, ...props }, ref) => <li ref={ref} className={cn('', className)} {...props} />
-);
+const PaginationItem = React.forwardRef<
+  HTMLLIElement,
+  React.ComponentProps<'li'>
+>(({ className, ...props }, ref) => (
+  <li ref={ref} className={cn('', className)} {...props} />
+));
 PaginationItem.displayName = 'PaginationItem';
 
 type PaginationLinkProps = {
   isActive?: boolean;
 } & React.ComponentProps<'a'>;
 
-const PaginationLink = ({ className, isActive, ...props }: PaginationLinkProps) => (
+const PaginationLink = ({
+  className,
+  isActive,
+  ...props
+}: PaginationLinkProps) => (
   <a
     aria-current={isActive ? 'page' : undefined}
     className={cn(

@@ -1,4 +1,4 @@
-import { User } from "../auth/users";
+import { User } from '../auth/users';
 
 export interface OrganizationUser {
   id: string;

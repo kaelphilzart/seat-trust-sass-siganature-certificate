@@ -6,9 +6,5 @@ import { Skeleton } from '@/components/ui/skeleton';
 export default function ElementTypePage() {
   const { section } = useElementType();
 
-  return (
-    <Suspense fallback={<Skeleton />}>
-      {section}
-    </Suspense>
-  );
+  return <Suspense fallback={<Skeleton />}>{section}</Suspense>;
 }

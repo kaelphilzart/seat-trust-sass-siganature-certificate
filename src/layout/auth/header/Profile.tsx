@@ -1,24 +1,24 @@
-"use client";
+'use client';
 
 import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
-} from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
-import Image from "next/image";
-import { Icon } from "@iconify/react";
-import { signOut } from "next-auth/react";
-import { useAlert } from "@/components/alert/alert-dialog-global";
+} from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
+import Image from 'next/image';
+import { Icon } from '@iconify/react';
+import { signOut } from 'next-auth/react';
+import { useAlert } from '@/components/alert/alert-dialog-global';
 
 export default function Profile() {
   const alert = useAlert();
   const handleLogout = () => {
-    alert.confirm("Apakah kamu yakin ingin logout?", () => {
-      signOut({ callbackUrl: "/" });
-      alert.success("Berhasil logout!");
+    alert.confirm('Apakah kamu yakin ingin logout?', () => {
+      signOut({ callbackUrl: '/' });
+      alert.success('Berhasil logout!');
     });
   };
   return (
@@ -83,6 +83,5 @@ export default function Profile() {
         </DropdownMenuContent>
       </DropdownMenu>
     </div>
-  )
+  );
 }
-

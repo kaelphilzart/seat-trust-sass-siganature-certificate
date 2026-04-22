@@ -51,7 +51,11 @@ export default function AlertDialog({
             leaveTo="opacity-0 scale-95"
           >
             <Dialog.Panel className="w-full max-w-sm rounded-2xl bg-white dark:bg-dark shadow-lg p-6">
-              {title && <Dialog.Title className="text-lg font-semibold">{title}</Dialog.Title>}
+              {title && (
+                <Dialog.Title className="text-lg font-semibold">
+                  {title}
+                </Dialog.Title>
+              )}
               {message && <div className="mt-2 text-sm">{message}</div>}
 
               <div className="mt-4 flex justify-end gap-2">

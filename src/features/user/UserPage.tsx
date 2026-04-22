@@ -6,9 +6,5 @@ import { Skeleton } from '@/components/ui/skeleton';
 export default function UserPage() {
   const { section } = useUser();
 
-  return (
-    <Suspense fallback={<Skeleton />}>
-      {section}
-    </Suspense>
-  );
+  return <Suspense fallback={<Skeleton />}>{section}</Suspense>;
 }

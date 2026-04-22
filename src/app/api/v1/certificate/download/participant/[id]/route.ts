@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
-import { downloadCertificateBulk, downloadCertificateParticipant } from '@/server/services/certificate/certificate.service';
+import {
+  downloadCertificateBulk,
+  downloadCertificateParticipant,
+} from '@/server/services/certificate/certificate.service';
 
 // ============================
 // (GET)
@@ -39,10 +42,7 @@ export async function GET(
     // =========================
     // BULK → ZIP
     // =========================
-    const zipStream = await downloadCertificateBulk(
-      batchId,
-      participantIds
-    );
+    const zipStream = await downloadCertificateBulk(batchId, participantIds);
 
     return new NextResponse(zipStream as any, {
       headers: {
@@ -50,7 +50,6 @@ export async function GET(
         'Content-Disposition': `attachment; filename=certificates-${batchId}.zip`,
       },
     });
-
   } catch (e: any) {
     console.error(e);
 

@@ -1,207 +1,211 @@
 import { pool } from '@/lib/db';
 import { redis } from '@/lib/redis';
-import { IRepresentative, ICreateRepresentative, IUpdateRepresentative } from '@/types/representative';
+import {
+  IRepresentative,
+  ICreateRepresentative,
+  IUpdateRepresentative,
+} from '@/types/representative';
 import { randomUUID } from 'crypto';
+import {
+  RepresentativeRow,
+  RepresentativeOrgRow,
+} from '../interfaces/Representative.interface';
+import { mapRepresentative } from '../mappers/Representative.mapper';
+import { getAuthUser } from '../helpers/auth';
 
 const CACHE_ALL_REPRESENTATIVES = 'representative:all';
 
 // GET
-export const getAllRepresentatives = async (
-    organization_id?: string
-): Promise<IRepresentative[]> => {
-    const cacheKey = organization_id
-        ? `${CACHE_ALL_REPRESENTATIVES}:${organization_id}`
-        : CACHE_ALL_REPRESENTATIVES;
+export const getAllRepresentatives = async (): Promise<IRepresentative[]> => {
+  const user = await getAuthUser();
 
-    const cached = await redis.get<IRepresentative[]>(cacheKey);
-    if (cached) return cached;
+  if (!user.organization_id) {
+    throw new Error('organization_id is required');
+  }
 
-    const conditions: string[] = [];
-    const values: any[] = [];
+  const organizationId = user.organization_id;
 
-    if (organization_id) {
-        conditions.push("r.organization_id = ?");
-        values.push(organization_id);
-    }
+  const cacheKey = `${CACHE_ALL_REPRESENTATIVES}:${organizationId}`;
 
-    const whereClause = conditions.length
-        ? `WHERE ${conditions.join(" AND ")}`
-        : "";
+  const cached = await redis.get<IRepresentative[]>(cacheKey);
+  if (cached) return cached;
 
-    const [rows] = await pool.query(
-        `
-    SELECT 
-      r.id,
-      r.name,
-      r.title,
-      r.organization_id,
-      r.created_at,
-      r.updated_at,
+  const [rows] = await pool.query<RepresentativeRow[]>(
+    `
+        SELECT 
+          r.id,
+          r.name,
+          r.title,
+          r.organization_id,
+          r.created_at,
+          r.updated_at,
 
-      o.id as org_id,
-      o.name as org_name,
-      o.slug as org_slug,
-      o.logo as org_logo
+          o.id as org_id,
+          o.name as org_name,
+          o.slug as org_slug,
+          o.logo as org_logo
 
-    FROM representatives r
-    LEFT JOIN organizations o
-      ON o.id = r.organization_id
-    ${whereClause}
-    ORDER BY r.created_at DESC
-    `,
-        values
-    );
+        FROM representatives r
+        LEFT JOIN organizations o
+          ON o.id = r.organization_id
+        WHERE r.organization_id = ?
+        ORDER BY r.created_at DESC
+        `,
+    [organizationId]
+  );
 
-    const representatives = (rows as any[]).map((row) => ({
-        id: row.id,
-        name: row.name,
-        title: row.title,
-        organization_id: row.organization_id,
-        created_at: row.created_at,
-        updated_at: row.updated_at,
+  const representatives = rows.map(mapRepresentative);
 
-        organization: row.org_id
-            ? {
-                id: row.org_id,
-                name: row.org_name,
-                slug: row.org_slug,
-                logo: row.org_logo,
-            }
-            : null,
-    }));
+  await redis.set(cacheKey, representatives, { ex: 60 });
 
-    await redis.set(cacheKey, representatives, { ex: 60 });
-
-    return representatives;
+  return representatives;
 };
 
 // GET BY ID
 export const getRepresentativeById = async (
-    id: string
+  id: string
 ): Promise<IRepresentative | null> => {
-    if (!id) {
-        throw new Error("Representative ID is required");
-    }
+  if (!id) {
+    throw new Error('Representative ID is required');
+  }
 
-    const [rows] = await pool.query(
-        `
-    SELECT 
-      r.id,
-      r.name,
-      r.title,
-      r.organization_id,
-      r.created_at,
-      r.updated_at,
+  const [rows] = await pool.query<RepresentativeRow[]>(
+    `
+        SELECT 
+          r.id,
+          r.name,
+          r.title,
+          r.organization_id,
+          r.created_at,
+          r.updated_at,
 
-      o.id as org_id,
-      o.name as org_name,
-      o.slug as org_slug,
-      o.logo as org_logo
+          o.id as org_id,
+          o.name as org_name,
+          o.slug as org_slug,
+          o.logo as org_logo
 
-    FROM representatives r
-    LEFT JOIN organizations o
-      ON o.id = r.organization_id
-    WHERE r.id = ?
-    LIMIT 1
-    `,
-        [id]
-    );
+        FROM representatives r
+        LEFT JOIN organizations o
+          ON o.id = r.organization_id
+        WHERE r.id = ?
+        LIMIT 1
+        `,
+    [id]
+  );
 
-    const row = (rows as any[])[0];
-    if (!row) return null;
+  const row = rows[0];
+  if (!row) return null;
 
-    return {
-        id: row.id,
-        name: row.name,
-        title: row.title,
-        created_at: row.created_at,
-        updated_at: row.updated_at,
-
-        organization: row.org_id
-            ? {
-                id: row.org_id,
-                name: row.org_name,
-                slug: row.org_slug,
-                logo: row.org_logo,
-            }
-            : null,
-    };
+  return mapRepresentative(row);
 };
 
 // ===============================
 // (POST)
 // ===============================
-export const createRepresentative = async (data: ICreateRepresentative): Promise<IRepresentative> => {
-    const id = randomUUID();
+export const createRepresentative = async (
+  data: ICreateRepresentative
+): Promise<IRepresentative> => {
+  const user = await getAuthUser();
 
-    await pool.query(
-        `
-    INSERT INTO representatives
-    (id, organization_id, name, title)
-    VALUES (?, ?, ?, ?)
-    `,
-        [id, data.organization_id, data.name, data.title]
-    );
+  // 🔥 resolve organization_id (user > payload)
+  const organizationId = user.organization_id ?? data.organization_id;
 
-    await redis.del(CACHE_ALL_REPRESENTATIVES);
-    await redis.del(`${CACHE_ALL_REPRESENTATIVES}:${data.organization_id}`);
+  if (!organizationId) {
+    throw new Error('organization_id is required');
+  }
 
-    return {
-        id,
-        ...data,
-    };
+  const id = randomUUID();
+
+  await pool.query(
+    `
+        INSERT INTO representatives
+        (id, organization_id, name, title)
+        VALUES (?, ?, ?, ?)
+        `,
+    [id, organizationId, data.name, data.title]
+  );
+
+  // 🔥 cache invalidation
+  await redis.del(CACHE_ALL_REPRESENTATIVES);
+  await redis.del(`${CACHE_ALL_REPRESENTATIVES}:${organizationId}`);
+
+  // 🔥 return sesuai contract FE
+  return {
+    id,
+    name: data.name,
+    title: data.title,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    organization: null,
+  };
 };
 
 // ===============================
 // (PATCH)
 // ===============================
 export const updateRepresentative = async (
-    id: string,
-    data: Partial<IUpdateRepresentative>
-): Promise<IUpdateRepresentative | null> => {
-    const allowedFields = ['name', 'title'];
-    const fields = Object.keys(data).filter((key) => allowedFields.includes(key));
-    if (!fields.length) return getRepresentativeById(id);
-    const values = fields.map((field) => (data as any)[field]);
-    const setClause = fields.map((field) => `${field} = ?`).join(', ');
+  id: string,
+  data: Partial<IUpdateRepresentative>
+): Promise<IRepresentative | null> => {
+  if (!id) {
+    throw new Error('Representative ID is required');
+  }
 
-    await pool.query(
-        `UPDATE representatives SET ${setClause}, updated_at = NOW() WHERE id = ?`,
-        [...values, id]
-    );
-    const [rows]: any = await pool.query(
-        `SELECT organization_id FROM representatives WHERE id = ?`,
-        [id]
-    );
+  const allowedFields: (keyof IUpdateRepresentative)[] = ['name', 'title'];
 
-    const organizationId = rows?.[0]?.organization_id;
-    if (organizationId) {
-        await redis.del(`${CACHE_ALL_REPRESENTATIVES}:${organizationId}`);
-    }
-    await redis.del(CACHE_ALL_REPRESENTATIVES);
+  const fields = Object.keys(data).filter((key) =>
+    allowedFields.includes(key as keyof IUpdateRepresentative)
+  );
 
+  if (!fields.length) {
     return getRepresentativeById(id);
+  }
+
+  const values = fields.map(
+    (field) => data[field as keyof IUpdateRepresentative]
+  );
+
+  const setClause = fields.map((field) => `${field} = ?`).join(', ');
+
+  const user = await getAuthUser();
+
+  // 🔥 OPTIONAL SCOPING (user → scoped, superadmin → bebas)
+  const query = user.organization_id
+    ? `UPDATE representatives 
+           SET ${setClause}, updated_at = NOW() 
+           WHERE id = ? AND organization_id = ?`
+    : `UPDATE representatives 
+           SET ${setClause}, updated_at = NOW() 
+           WHERE id = ?`;
+
+  const params = user.organization_id
+    ? [...values, id, user.organization_id]
+    : [...values, id];
+
+  await pool.query(query, params);
+
+  // 🔥 CACHE INVALIDATION (tetap aman)
+  await redis.del(CACHE_ALL_REPRESENTATIVES);
+
+  if (user.organization_id) {
+    await redis.del(`${CACHE_ALL_REPRESENTATIVES}:${user.organization_id}`);
+  }
+
+  return getRepresentativeById(id);
 };
 
 // ===============================
 // DELETE
 // ===============================
 export const deleteRepresentative = async (id: string): Promise<void> => {
-  // ambil organization_id dulu SEBELUM delete
-  const [rows]: any = await pool.query(
+  const [rows] = await pool.query<RepresentativeOrgRow[]>(
     'SELECT organization_id FROM representatives WHERE id = ?',
     [id]
   );
 
   const organizationId = rows?.[0]?.organization_id;
-
-  // delete data
   await pool.query('DELETE FROM representatives WHERE id = ?', [id]);
-
-  // 🔥 clear cache global
   await redis.del(CACHE_ALL_REPRESENTATIVES);
-
-  // 🔥 clear cache per organization (INI YANG KURANG)
   if (organizationId) {
     await redis.del(`${CACHE_ALL_REPRESENTATIVES}:${organizationId}`);
   }

@@ -4,10 +4,13 @@ import { useSession } from 'next-auth/react';
 import { lazy, useMemo } from 'react';
 import NoAccessFallback from '@/auth/NoAccessFallback';
 
-
 const AdminSection = lazy(() => import('../components/sections/AdminSection'));
-const SuperAdminSection = lazy(() => import("../components/sections/SuperAdminSection"));
-const RepresentativeSection = lazy(() => import("../components/sections/RepresentativeSection"));
+const SuperAdminSection = lazy(
+  () => import('../components/sections/SuperAdminSection')
+);
+const RepresentativeSection = lazy(
+  () => import('../components/sections/RepresentativeSection')
+);
 
 export function useDashboard() {
   const { data: session } = useSession();
@@ -19,7 +22,7 @@ export function useDashboard() {
     const map: Record<string, React.ReactNode> = {
       SUPERADMIN: <SuperAdminSection />,
       ADMIN: <AdminSection />,
-      REPRESENTATIVE: <RepresentativeSection />
+      REPRESENTATIVE: <RepresentativeSection />,
     };
 
     return map[user.role] ?? <NoAccessFallback />;

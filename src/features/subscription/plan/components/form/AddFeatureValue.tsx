@@ -20,8 +20,9 @@ export default function AddFeatureValueForm({
   formData,
   onChange,
 }: AddFeatureValueFormProps) {
-
-  const [form, setForm] = useState<Partial<ICreatePlanFeatureValue>>(formData ?? {});
+  const [form, setForm] = useState<Partial<ICreatePlanFeatureValue>>(
+    formData ?? {}
+  );
   const { features, featuresLoading } = useGetAllFeatures();
 
   /* ===== SAVE DRAFT ===== */
@@ -42,7 +43,6 @@ export default function AddFeatureValueForm({
 
   return (
     <div className="">
-
       {/* SELECT FEATURE */}
       <div>
         <ComboboxField
@@ -61,7 +61,7 @@ export default function AddFeatureValueForm({
 
       {/* VALUE INPUT */}
       {selectedFeature && (
-        <div className='mt-4 p-2'>
+        <div className="mt-4 p-2">
           <Label className="mb-1 block text-sm font-medium">
             {selectedFeature.display_name}
           </Label>
@@ -110,7 +110,6 @@ export default function AddFeatureValueForm({
           )}
         </div>
       )}
-
     </div>
   );
 }

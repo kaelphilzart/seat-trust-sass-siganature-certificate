@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { IUpdateElementType } from '@/types/element-type';
 import { Input } from '@/components/ui/input';
 import Image from 'next/image';
@@ -24,53 +24,38 @@ export default function EditElementTypeForm({
   formData,
   onChange,
 }: EditElementTypeFormProps) {
-  const [form, setForm] = useState<IUpdateElementType>({});
-  const [preview, setPreview] = useState<string | null>(null);
+  const [form, setForm] = useState<IUpdateElementType>(() => ({
+    ...(formData ?? {}),
+  }));
+
+  const [preview, setPreview] = useState<string | null>(
+    formData?.icon_path ?? null
+  );
 
   const { features, featuresLoading } = useGetAllFeatures();
 
-  /* ========================= INIT ========================= */
-  useEffect(() => {
-    if (!formData) return;
-
-    setForm(formData);
-
-    if (formData.icon_path) {
-      setPreview(formData.icon_path);
-    } else {
-      setPreview(null);
-    }
-  }, [formData?.id]);
-
-  /* ========================= EMIT ========================= */
-  useEffect(() => {
-    if (!formData?.id) return;
-
-    onChange?.({
-      ...form,
-      id: formData.id,
-    });
-  }, [form]);
-
-  /* ========================= CLEANUP ========================= */
-  useEffect(() => {
-    return () => {
-      if (preview && preview.startsWith('blob:')) {
-        URL.revokeObjectURL(preview);
-      }
-    };
-  }, [preview]);
-
+  /* =========================
+     HANDLE CHANGE (SINGLE SOURCE OF TRUTH)
+  ========================= */
   const handleChange = <K extends keyof IUpdateElementType>(
     field: K,
     value: IUpdateElementType[K]
   ) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
+    const updated = {
+      ...form,
+      [field]: value,
+    };
+
+    setForm(updated);
+
+    onChange?.({
+      ...updated,
+      id: formData?.id,
+    });
   };
 
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-
       {/* Name */}
       <div>
         <label className="mb-1 block text-sm font-medium">Name</label>
@@ -93,11 +78,10 @@ export default function EditElementTypeForm({
       <div>
         <label className="mb-1 block text-sm font-medium">UI Type</label>
         <Select
-          value={form.ui_type}
+          value={form.ui_type ?? ''}
           onValueChange={(val) => {
             handleChange('ui_type', val);
 
-            // 🔥 reset logic
             if (val === 'asset') {
               handleChange('element_kind', undefined);
             } else {
@@ -105,7 +89,7 @@ export default function EditElementTypeForm({
             }
           }}
         >
-          <SelectTrigger className="w-full">
+          <SelectTrigger>
             <SelectValue placeholder="Pilih UI Type" />
           </SelectTrigger>
           <SelectContent>
@@ -119,11 +103,11 @@ export default function EditElementTypeForm({
       <div>
         <label className="mb-1 block text-sm font-medium">Element Kind</label>
         <Select
-          value={form.element_kind}
+          value={form.element_kind ?? ''}
           onValueChange={(val) => handleChange('element_kind', val)}
           disabled={form.ui_type === 'asset'}
         >
-          <SelectTrigger className="w-full">
+          <SelectTrigger>
             <SelectValue placeholder="Pilih Element Kind" />
           </SelectTrigger>
           <SelectContent>
@@ -138,11 +122,11 @@ export default function EditElementTypeForm({
       <div>
         <label className="mb-1 block text-sm font-medium">Asset Type</label>
         <Select
-          value={form.asset_type}
+          value={form.asset_type ?? ''}
           onValueChange={(val) => handleChange('asset_type', val)}
           disabled={form.ui_type === 'element'}
         >
-          <SelectTrigger className="w-full">
+          <SelectTrigger>
             <SelectValue placeholder="Pilih Asset Type" />
           </SelectTrigger>
           <SelectContent>
@@ -166,7 +150,7 @@ export default function EditElementTypeForm({
         />
       </div>
 
-      {/* Width */}
+      {/* WIDTH */}
       <div>
         <label className="mb-1 block text-sm font-medium">Default Width</label>
         <Input
@@ -181,7 +165,7 @@ export default function EditElementTypeForm({
         />
       </div>
 
-      {/* Height */}
+      {/* HEIGHT */}
       <div>
         <label className="mb-1 block text-sm font-medium">Default Height</label>
         <Input
@@ -196,9 +180,11 @@ export default function EditElementTypeForm({
         />
       </div>
 
-      {/* Rotation */}
+      {/* ROTATION */}
       <div>
-        <label className="mb-1 block text-sm font-medium">Default Rotation</label>
+        <label className="mb-1 block text-sm font-medium">
+          Default Rotation
+        </label>
         <Input
           type="number"
           value={form.default_rotation ?? ''}
@@ -211,7 +197,7 @@ export default function EditElementTypeForm({
         />
       </div>
 
-      {/* File */}
+      {/* FILE */}
       <div className="md:col-span-2">
         <label className="mb-1 block text-sm font-medium">Icon / File</label>
         <Input
@@ -223,7 +209,7 @@ export default function EditElementTypeForm({
 
             handleChange('file_path', file);
 
-            if (preview && preview.startsWith('blob:')) {
+            if (preview?.startsWith('blob:')) {
               URL.revokeObjectURL(preview);
             }
 
@@ -233,7 +219,7 @@ export default function EditElementTypeForm({
         />
       </div>
 
-      {/* Preview */}
+      {/* PREVIEW */}
       {preview && (
         <div className="md:col-span-2 mt-2">
           <Image

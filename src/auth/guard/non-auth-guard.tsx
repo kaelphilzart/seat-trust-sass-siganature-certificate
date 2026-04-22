@@ -1,29 +1,31 @@
 'use client';
-import { ReactNode, useEffect, useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
-import { LoadingScreen } from "@/components/animate/loading-screen";
-import { paths } from "@/routes/paths";
+import { ReactNode, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
+import { LoadingScreen } from '@/components/animate/loading-screen';
+import { paths } from '@/routes/paths';
 
-type Props = { children: ReactNode; };
+type Props = { children: ReactNode };
 
 export default function NonAuthGuard({ children }: Props) {
-    const { status } = useSession();
-    return <>{status === "loading" ? <LoadingScreen /> : <Container>{children}</Container>}</>;
-}
+  const { status } = useSession();
+  const router = useRouter();
+  const [checked, setChecked] = useState(false);
 
-function Container({ children }: Props) {
-    const router = useRouter();
-    const { status } = useSession();
-    const [checked, setChecked] = useState(false);
+  useEffect(() => {
+    if (status === 'loading') return;
 
-    const check = useCallback(() => {
-        if (status === "authenticated") router.replace(`${paths.dashboard}`);
-        else setChecked(true);
-    }, [status, router]);
+    if (status === 'authenticated') {
+      router.replace(paths.dashboard);
+      return;
+    }
 
-    useEffect(() => { check(); }, [status]);
+    setChecked(true);
+  }, [status, router]);
 
-    if (!checked) return null;
-    return <>{children}</>;
+  if (status === 'loading' || !checked) {
+    return <LoadingScreen />;
+  }
+
+  return <>{children}</>;
 }

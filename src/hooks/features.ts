@@ -23,12 +23,15 @@ export function useGetAllFeatures() {
     options
   );
 
-  const memoized = useMemo(() => ({
-    features: (data?.data || []) as IFeature[],
-    featuresLoading: isLoading,
-    featuresIsValidating: isValidating,
-    featuresError: error,
-  }), [data, isLoading, isValidating, error]);
+  const memoized = useMemo(
+    () => ({
+      features: (data?.data || []) as IFeature[],
+      featuresLoading: isLoading,
+      featuresIsValidating: isValidating,
+      featuresError: error,
+    }),
+    [data, isLoading, isValidating, error]
+  );
 
   return memoized;
 }
@@ -38,15 +41,17 @@ export function useGetAllFeatures() {
 // ===========================
 export async function createFeature(data: ICreateFeature) {
   try {
-    const res = await request<IFeature>(URL_FEATURE, { method: 'POST', body: data });
+    const res = await request<IFeature>(URL_FEATURE, {
+      method: 'POST',
+      body: data,
+    });
 
     // invalidate cache
     mutate((key) => typeof key === 'string' && key.startsWith(URL_FEATURE));
 
     return res;
-  } catch (error: any) {
-    console.error('Error saat membuat feature:', error.message || error);
-    return false;
+  } catch (error: unknown) {
+    throw error;
   }
 }
 
@@ -55,35 +60,27 @@ export async function createFeature(data: ICreateFeature) {
 // ===========================
 export async function editFeature(id: string, data: Partial<IUpdateFeature>) {
   try {
-    const res = await request<IUpdateFeature>(`${URL_FEATURE}/${id}`, { method: 'PATCH', body: data });
-
-    // update cache lokal SWR
-    mutate(
-      URL_FEATURE,
-      (existing: any) => {
-        if (!existing?.data) return { data: [res] };
-        return {
-          ...existing,
-          data: existing.data.map((item: IFeature) => (item.id === id ? { ...item, ...data } : item)),
-        };
-      },
-      false
-    );
-
-    // invalidate semua cache feature
-    mutate((key) => typeof key === 'string' && key.startsWith(URL_FEATURE));
+    const res = await request<IFeature>(`${URL_FEATURE}/${id}`, {
+      method: 'PATCH',
+      body: data,
+    });
+    await Promise.all([
+      mutate(`${URL_FEATURE}/${id}`), // Refresh detail feature ini
+      mutate((key) => typeof key === 'string' && key.startsWith(URL_FEATURE)),
+    ]);
 
     return res;
-  } catch (error: any) {
-    console.error('Error saat mengupdate feature:', error.message || error);
-    return false;
+  } catch (error: unknown) {
+    throw error;
   }
 }
 
 // ===========================
 // DELETE FEATURE
 // ===========================
-export async function deleteFeature(id: string): Promise<{ success: boolean; message?: string }> {
+export async function deleteFeature(
+  id: string
+): Promise<{ success: boolean; message?: string }> {
   try {
     const res = await fetch(`${URL_FEATURE}/${id}`, { method: 'DELETE' });
     if (!res.ok) {
@@ -105,11 +102,7 @@ export async function deleteFeature(id: string): Promise<{ success: boolean; mes
 
     // DELETE sukses, 204 No Content → return success
     return { success: true };
-  } catch (error: any) {
-    console.error('Error saat menghapus feature:', error?.message || error);
-    return {
-      success: false,
-      message: error?.message || 'Terjadi kesalahan saat menghapus feature.',
-    };
+  } catch (error: unknown) {
+    throw error;
   }
 }

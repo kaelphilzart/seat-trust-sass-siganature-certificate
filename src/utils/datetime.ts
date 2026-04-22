@@ -15,7 +15,9 @@ export function parseApiDateTime(src?: string | null): Date | null {
 
   // "YYYY-MM-DD HH:mm:ss" atau "YYYY-MM-DDTHH:mm:ss(.SSS)"
   const s = raw.replace(' ', 'T');
-  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})[T](\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,3}))?$/);
+  const m = s.match(
+    /^(\d{4})-(\d{2})-(\d{2})[T](\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,3}))?$/
+  );
   if (m) {
     const [, yy, MM, dd, HH, mm, ss, ms] = m;
     const d = new Date(
@@ -75,7 +77,10 @@ export function fmtLocalDateLongID(src?: string | null): string {
 }
 
 /** Format: 12 Januari 2026 s/d 15 Januari 2026 */
-export function fmtLocalDateRangeLongID(start?: string | null, end?: string | null): string {
+export function fmtLocalDateRangeLongID(
+  start?: string | null,
+  end?: string | null
+): string {
   const a = fmtLocalDateLongID(start);
   const b = fmtLocalDateLongID(end);
   if (a === '—' && b === '—') return '—';
@@ -125,7 +130,10 @@ export function formatDateShort(src?: string | null): string {
   return d ? format(d, 'dd/MM/yyyy', { locale: localeID }) : '—';
 }
 
-export function calculateDays(start?: string | null, end?: string | null): number | null {
+export function calculateDays(
+  start?: string | null,
+  end?: string | null
+): number | null {
   const s = parseApiDateTime(start);
   const e = parseApiDateTime(end);
   if (!s || !e) return null;

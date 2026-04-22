@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
-import { createElementType, getAllElementTypes } from '@/server/services/elementTypeServices';
+import {
+  createElementType,
+  getAllElementTypes,
+} from '@/server/services/elementTypeServices';
 import { uploadToCloudinaryElement } from '@/server/services/upload';
 
 export async function GET() {
@@ -7,7 +10,10 @@ export async function GET() {
     return NextResponse.json({ data: await getAllElementTypes() });
   } catch (e: any) {
     console.error('GET ELEMENT ERROR:', e);
-    return NextResponse.json({ message: e?.message || 'Server error' }, { status: 500 });
+    return NextResponse.json(
+      { message: e?.message || 'Server error' },
+      { status: 500 }
+    );
   }
 }
 

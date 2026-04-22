@@ -29,11 +29,10 @@ export default function AddUserForm({ formData, onChange }: AddUserFormProps) {
 
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-
       <div>
         <label className="mb-1 block text-sm font-medium">Email</label>
         <Input
-          type='email'
+          type="email"
           value={form.email ?? ''}
           onChange={(e) => handleChange('email', e.target.value)}
           placeholder="@gmail.com"
@@ -43,7 +42,7 @@ export default function AddUserForm({ formData, onChange }: AddUserFormProps) {
       <div>
         <label className="mb-1 block text-sm font-medium">Password</label>
         <Input
-          type='password'
+          type="password"
           value={form.password ?? ''}
           onChange={(e) => handleChange('password', e.target.value)}
           placeholder="B 1234 ABC"

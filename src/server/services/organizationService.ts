@@ -1,16 +1,19 @@
 import { pool } from '@/lib/db';
 import { redis } from '@/lib/redis';
-import { ICreateOrganization, IOrganization, IUpdateOrganization } from '@/types/organization';
+import { ICreateOrganization, IUpdateOrganization } from '@/types/organization';
 import { randomUUID } from 'crypto';
+import { OrganizationRow } from '../interfaces/Organization.interface';
+import { mapOrganization } from '../mappers/Organization.mapper';
 
 const CACHE_ALL_ORGANIZATIONS = 'organizations:all';
 
 // GET
-export const getAllOrganizations = async (): Promise<IOrganization[]> => {
-    const cached = await redis.get<IOrganization[]>(CACHE_ALL_ORGANIZATIONS);
-    if (cached) return cached;
+export const getAllOrganizations = async () => {
+  const cached = await redis.get(CACHE_ALL_ORGANIZATIONS);
+  if (cached) return cached;
 
-    const [rows] = await pool.query(`
+  const [rows] = await pool.query<OrganizationRow[]>(
+    `
         SELECT 
             o.*,
             s.id as subscription_id,
@@ -29,47 +32,20 @@ export const getAllOrganizations = async (): Promise<IOrganization[]> => {
             ON s.organization_id = o.id
         LEFT JOIN plans p
             ON p.id = s.plan_id
-    `);
+        `
+  );
 
-    const organizations = (rows as any[]).map((row) => ({
-        id: row.id,
-        name: row.name,
-        slug: row.slug,
-        created_at: row.created_at,
-        updated_at: row.updated_at,
-        subscription: row.subscription_id
-            ? {
-                  id: row.subscription_id,
-                  organization: {
-                      id: row.id,
-                      name: row.name,
-                      slug: row.slug,
-                      created_at: row.created_at,
-                      updated_at: row.updated_at,
-                  },
-                  plan: {
-                      id: row.plan_id,
-                      name: row.plan_name,
-                      price: row.plan_price,
-                  },
-                  plan_id: row.plan_id,
-                  start_date: row.start_date,
-                  end_date: row.end_date,
-                  status: !!row.status,
-                  created_at: row.sub_created_at,
-                  updated_at: row.sub_updated_at,
-              }
-            : undefined,
-    }));
+  const organizations = rows.map(mapOrganization);
 
-    await redis.set(CACHE_ALL_ORGANIZATIONS, organizations, { ex: 60 });
+  await redis.set(CACHE_ALL_ORGANIZATIONS, organizations, { ex: 60 });
 
-    return organizations;
+  return organizations;
 };
 
 // GET BY ID
-export const getOrganizationById = async (id: string): Promise<IOrganization | null> => {
-    const [rows] = await pool.query(`
+export const getOrganizationById = async (id: string) => {
+  const [rows] = await pool.query<OrganizationRow[]>(
+    `
         SELECT 
             o.*,
             s.id as subscription_id,
@@ -90,89 +66,78 @@ export const getOrganizationById = async (id: string): Promise<IOrganization | n
             ON p.id = s.plan_id
         WHERE o.id = ?
         LIMIT 1
-    `, [id]);
+        `,
+    [id]
+  );
 
-    const row = (rows as any[])[0];
-    if (!row) return null;
+  const row = rows[0];
+  if (!row) return null;
 
-    const organization: IOrganization = {
-        id: row.id,
-        name: row.name,
-        slug: row.slug,
-        created_at: row.created_at,
-        updated_at: row.updated_at,
-        subscription: row.subscription_id
-            ? {
-                  id: row.subscription_id,
-                  organization: {
-                      id: row.id,
-                      name: row.name,
-                      slug: row.slug,
-                      created_at: row.created_at,
-                      updated_at: row.updated_at,
-                  },
-                  plan: {
-                      id: row.plan_id,
-                      name: row.plan_name,
-                      price: row.plan_price,
-                  },
-                  plan_id: row.plan_id,
-                  start_date: row.start_date,
-                  end_date: row.end_date,
-                  status: !!row.status,
-                  created_at: row.sub_created_at,
-                  updated_at: row.sub_updated_at,
-              }
-            : undefined,
-    };
-
-    return organization;
+  return mapOrganization(row);
 };
 
 // POST
-export const createOrganization = async (organization: ICreateOrganization): Promise<ICreateOrganization> => {
-    const organizationId = randomUUID();
-    await pool.query(
-        `INSERT INTO organizations
+export const createOrganization = async (
+  organization: ICreateOrganization
+): Promise<ICreateOrganization> => {
+  const organizationId = randomUUID();
+  await pool.query(
+    `INSERT INTO organizations
         (id, name, slug, logo)
         VALUES (?, ?, ?, ?)`,
-        [organizationId, organization.name, organization.slug, organization.logo]
-    );
-    await redis.del(CACHE_ALL_ORGANIZATIONS);
-    return {
-        id: organizationId,
-        name: organization.name,
-        slug: organization.slug,
-        logo: organization.logo
-    };
+    [organizationId, organization.name, organization.slug, organization.logo]
+  );
+  await redis.del(CACHE_ALL_ORGANIZATIONS);
+  return {
+    id: organizationId,
+    name: organization.name,
+    slug: organization.slug,
+    logo: organization.logo,
+  };
 };
-
 
 // ===============================
 // (PATCH)
 // ===============================
 export const updateOrganization = async (
-    id: string,
-    data: Partial<IUpdateOrganization>
-): Promise<IUpdateOrganization | null> => {
-    const allowedFields = ['name', 'slug', 'logo'];
-    const fields = Object.keys(data).filter((key) => allowedFields.includes(key));
-    if (!fields.length) return getOrganizationById(id);
-    const values = fields.map((field) => (data as any)[field]);
-    const setClause = fields.map((field) => `${field} = ?`).join(', ');
+  id: string,
+  data: Partial<IUpdateOrganization>
+) => {
+  const allowedFields: (keyof IUpdateOrganization)[] = ['name', 'slug', 'logo'];
 
-    await pool.query(
-        `UPDATE organizations SET ${setClause}, updated_at = NOW() WHERE id = ?`,
-        [...values, id]
-    );
-    await redis.del(CACHE_ALL_ORGANIZATIONS);
+  const fields = Object.keys(data).filter((key) =>
+    allowedFields.includes(key as keyof IUpdateOrganization)
+  );
+
+  if (!fields.length) {
     return getOrganizationById(id);
+  }
+
+  const values = fields.map(
+    (field) => data[field as keyof IUpdateOrganization]
+  ) as (string | null)[];
+
+  const setClause = fields.map((field) => `${field} = ?`).join(', ');
+
+  await pool.query(
+    `
+        UPDATE organizations 
+        SET ${setClause}, updated_at = NOW() 
+        WHERE id = ?
+        `,
+    [...values, id]
+  );
+
+  await redis.del(CACHE_ALL_ORGANIZATIONS);
+  await redis.del(`${CACHE_ALL_ORGANIZATIONS}:${id}`);
+  return getOrganizationById(id);
 };
 
 // ===============================
 // DELETE
 // ===============================
 export const deleteOrganization = async (id: string): Promise<void> => {
-    await pool.query('DELETE FROM organizations WHERE id = ?', [id]);
-    await redis.del(CACHE_ALL_ORGANIZATIONS);
+  await pool.query('DELETE FROM organizations WHERE id = ?', [id]);
+  await redis.del(CACHE_ALL_ORGANIZATIONS);
+  await redis.del(`${CACHE_ALL_ORGANIZATIONS}:${id}`);
 };

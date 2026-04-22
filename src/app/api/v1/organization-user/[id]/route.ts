@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
-import { getAllOrganizationUsers, createOrganizationUserByParam, updateOrganizationUser, deleteOrganizationUser } from '@/server/services/organizationUserService';
-
+import {
+  getAllOrganizationUsers,
+  createOrganizationUserByParam,
+  updateOrganizationUser,
+  deleteOrganizationUser,
+} from '@/server/services/organizationUserService';
 
 // ============================
 // (GET)
@@ -43,7 +47,7 @@ export async function POST(
     const data = await createOrganizationUserByParam(id, {
       user_id,
       organization_id,
-      role
+      role,
     });
 
     return NextResponse.json(
@@ -78,7 +82,7 @@ export async function PATCH(
       );
     return NextResponse.json(
       {
-        message: "Organization user berhasil diperbarui",
+        message: 'Organization user berhasil diperbarui',
         data: updated,
       },
       { status: 200 }
@@ -101,7 +105,10 @@ export async function DELETE(
 
   try {
     await deleteOrganizationUser(id);
-    return NextResponse.json({ success: true, message: 'Organization user berhasil dihapus' });
+    return NextResponse.json({
+      success: true,
+      message: 'Organization user berhasil dihapus',
+    });
   } catch (e: any) {
     return NextResponse.json(
       { success: false, message: e?.message || 'Server error' },

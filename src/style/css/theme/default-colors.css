@@ -1,10 +1,10 @@
 :root {
- /* Status & feedback */
-  --color-info: #FF9E5C;        /* oranye muda → info */
-  --color-success: #36C76C;     /* hijau → success / valid */
-  --color-warning: #FFB900;     /* kuning → warning */
-  --color-error: #FF3B30;       /* merah → error */
-  --color-darkinfo: #D9763E;    /* dark oranye → header / label */
+  /* Status & feedback */
+  --color-info: #ff9e5c; /* oranye muda → info */
+  --color-success: #36c76c; /* hijau → success / valid */
+  --color-warning: #ffb900; /* kuning → warning */
+  --color-error: #ff3b30; /* merah → error */
+  --color-darkinfo: #d9763e; /* dark oranye → header / label */
 
   /* Core colors */
   --color-white: #ffffff;
@@ -12,16 +12,16 @@
   --color-border: #e0e6eb;
   --color-darkborder: #333f55;
   --color-link: #2a3547;
-  --color-muted: #EFF4FA;
+  --color-muted: #eff4fa;
   --color-darkmuted: #2a3851;
   --color-darklink: #7b8893;
   --color-lightgray: #f4f7fb;
   --color-darkgray: #1a2537;
-  --color-bodytext: #EFF4FAbf;
-  --color-primary: #FF7F11;     /* primary → seal trust accent */
-  --color-secondary: #FFA500;   /* secondary → highlight / accent */
+  --color-bodytext: #eff4fabf;
+  --color-primary: #ff7f11; /* primary → seal trust accent */
+  --color-secondary: #ffa500; /* secondary → highlight / accent */
   --color-input: #e5e7eb;
-  --color-graymuted: #DECFDA;
+  --color-graymuted: #decfda;
   /* --color-error-emphasis: #d5745b; */
   /* --color-warning-emphasis: #d9941a; */
   /* --color-success-emphasis: #10bd9d; */
@@ -49,7 +49,7 @@
     in oklab,
     var(--color-success) 12%,
     transparent
-  );  
+  );
   --color-lightwarning: color-mix(
     in oklab,
     var(--color-warning) 12%,
@@ -86,8 +86,8 @@
   --color-charcoal: #2a3547;
   --color-customdark: #111c2d;
   --color-defaultBorder: #e0e6eb;
-  --color-slateGray: #EFF4FAbf;
-  --color-breadcrumbColor: #16CDC720;
+  --color-slateGray: #eff4fabf;
+  --color-breadcrumbColor: #16cdc720;
 
   --shadow-md: 0px 1px 4px 0px rgba(133, 146, 173, 0.2);
 

@@ -44,13 +44,13 @@ export default function Carousel({
             <div
               onClick={() => onSelect(t.id)}
               className={`relative cursor-pointer rounded-xl border-2 p-2 transition shadow-sm hover:shadow-md ${
-                selectedId === t.id
-                  ? 'border-green-500'
-                  : 'border-transparent'
+                selectedId === t.id ? 'border-green-500' : 'border-transparent'
               }`}
             >
               {t.file_path ? (
-                <div className="relative w-full h-64"> {/* 🔥 160 → 256px */}
+                <div className="relative w-full h-64">
+                  {' '}
+                  {/* 🔥 160 → 256px */}
                   <Image
                     src={t.file_path}
                     alt={t.name}
@@ -85,12 +85,12 @@ export default function Carousel({
         }
 
         .swiper-pagination-bullet-active {
-          background-color: #FF7F11;
+          background-color: #ff7f11;
         }
 
         .swiper-button-next,
         .swiper-button-prev {
-          color: #FF7F11;
+          color: #ff7f11;
           width: 34px;
           height: 34px;
         }

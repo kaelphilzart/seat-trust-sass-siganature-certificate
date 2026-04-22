@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Stage,
   Layer,
@@ -9,7 +9,8 @@ import {
   Rect,
   Text,
 } from 'react-konva';
-
+import type { KonvaEventObject } from 'konva/lib/Node';
+import type { Stage as KonvaStage } from 'konva/lib/Stage';
 import { Button } from '@/components/ui/button';
 import { IconArrowLeft, IconZoomIn, IconZoomOut } from '@tabler/icons-react';
 
@@ -17,13 +18,35 @@ import { useGetAllBatchRepresentatives } from '@/hooks/batch-representative';
 import { useGetAllTemplatePositions } from '@/hooks/template-position';
 import { useGetAllTemplatePositionBindings } from '@/hooks/template-position-bindings';
 import { useGetOneBatch } from '@/hooks/batch';
+import { ITemplatePosition } from '@/types/template-position';
+import { ITemplatePositionBinding } from '@/types/template-position-binding';
+
+type Rep = {
+  id: string;
+  name: string;
+  color: string;
+};
+
+type Props = {
+  onFinish: (payload: {
+    data: {
+      batch_id: string;
+      template_position_id: string;
+      batch_representative_id: string;
+    }[];
+    isDirty: boolean;
+  }) => void;
+  onBack: () => void;
+  batchId: string;
+};
 
 const COLORS = ['#E3F2FD', '#E8F5E9', '#FFF3E0', '#F3E5F5', '#E0F7FA'];
 
-export default function SixStep({ onFinish, onBack, batchId }: any) {
+export default function SixStep({ onFinish, onBack, batchId }: Props) {
   const { batchRepresentatives } = useGetAllBatchRepresentatives(batchId);
   const { templatePositions } = useGetAllTemplatePositions(batchId);
-  const { templatePositionBindings } = useGetAllTemplatePositionBindings(batchId);
+  const { templatePositionBindings } =
+    useGetAllTemplatePositionBindings(batchId);
   const { batchOne } = useGetOneBatch(batchId);
 
   const [activeRepId, setActiveRepId] = useState<string | null>(null);
@@ -33,16 +56,14 @@ export default function SixStep({ onFinish, onBack, batchId }: any) {
   const [stageSize, setStageSize] = useState({ width: 800, height: 600 });
   const [scale, setScale] = useState(1);
 
-  const stageRef = useRef<any>(null);
+  const stageRef = useRef<KonvaStage | null>(null);
   const isInitialized = useRef(false);
 
   // =========================
   // ASSIGNABLE CHECK
   // =========================
-  const isAssignable = (code?: string) => {
-    if (!code) return false;
-    return !code.toLowerCase().includes('participant');
-  };
+  const isAssignable = (code?: string) =>
+    !!code && !code.toLowerCase().includes('participant');
 
   // =========================
   // LOAD TEMPLATE IMAGE
@@ -65,18 +86,18 @@ export default function SixStep({ onFinish, onBack, batchId }: any) {
   // =========================
   // REPRESENTATIVES
   // =========================
-  const reps = useMemo(() => {
+  const reps = useMemo<Rep[]>(() => {
     return (
-      batchRepresentatives?.map((item: any, i: number) => ({
-        id: item?.id,
-        name: item.representative?.name,
+      batchRepresentatives?.map((item, i) => ({
+        id: item.id,
+        name: item.representative?.name ?? '',
         color: COLORS[i % COLORS.length],
       })) || []
     );
   }, [batchRepresentatives]);
 
   const repMap = useMemo(() => {
-    const map: Record<string, any> = {};
+    const map: Record<string, Rep> = {};
     reps.forEach((r) => (map[r.id] = r));
     return map;
   }, [reps]);
@@ -84,10 +105,10 @@ export default function SixStep({ onFinish, onBack, batchId }: any) {
   // =========================
   // ELEMENTS
   // =========================
-  const elements = useMemo(() => {
+  const elements = useMemo<ITemplatePosition[]>(() => {
     return (
       templatePositions?.filter(
-        (tp: any) => tp.element_type?.ui_type === 'element'
+        (tp) => tp.element_type?.ui_type === 'element'
       ) || []
     );
   }, [templatePositions]);
@@ -101,7 +122,7 @@ export default function SixStep({ onFinish, onBack, batchId }: any) {
 
     const initial: Record<string, string> = {};
 
-    templatePositionBindings.forEach((b: any) => {
+    templatePositionBindings.forEach((b: ITemplatePositionBinding) => {
       const tpId = b.templatePosition?.id;
       const repId = b.batchRepresentative?.id;
 
@@ -121,7 +142,7 @@ export default function SixStep({ onFinish, onBack, batchId }: any) {
   const dbAssignments = useMemo(() => {
     const map: Record<string, string> = {};
 
-    templatePositionBindings?.forEach((b: any) => {
+    templatePositionBindings?.forEach((b: ITemplatePositionBinding) => {
       const tpId = b.templatePosition?.id;
       const repId = b.batchRepresentative?.id;
 
@@ -138,7 +159,7 @@ export default function SixStep({ onFinish, onBack, batchId }: any) {
   // =========================
   const payload = useMemo(() => {
     return Object.entries(assignments)
-      .filter(([_, repId]) => repId)
+      .filter(([, repId]) => repId)
       .map(([elementId, repId]) => ({
         batch_id: batchId,
         template_position_id: elementId,
@@ -170,37 +191,34 @@ export default function SixStep({ onFinish, onBack, batchId }: any) {
   // =========================
   // ICONS
   // =========================
-  const [icons, setIcons] = useState<Record<string, HTMLImageElement>>({});
-
-  useEffect(() => {
-    if (!elements?.length) return;
+  const icons = useMemo(() => {
+    if (!elements?.length) return {};
 
     const imgs: Record<string, HTMLImageElement> = {};
 
-    elements.forEach((el: any) => {
+    elements.forEach((el: ITemplatePosition) => {
       const code = el.element_type?.code?.toLowerCase();
       if (!code || imgs[code]) return;
 
       const img = new window.Image();
-      img.src = el.element_type?.icon_path;
+      img.src = el.element_type?.icon_path ?? '';
 
       imgs[code] = img;
     });
 
-    setIcons(imgs);
+    return imgs;
   }, [elements]);
 
   // =========================
   // ZOOM
   // =========================
-  const handleWheel = (e: any) => {
+  const handleWheel = (e: KonvaEventObject<WheelEvent>) => {
     if (!e.evt.ctrlKey) return;
 
     e.evt.preventDefault();
 
     const scaleBy = 1.1;
-    const newScale =
-      e.evt.deltaY > 0 ? scale / scaleBy : scale * scaleBy;
+    const newScale = e.evt.deltaY > 0 ? scale / scaleBy : scale * scaleBy;
 
     setScale(Math.min(4, Math.max(0.5, newScale)));
   };
@@ -230,32 +248,17 @@ export default function SixStep({ onFinish, onBack, batchId }: any) {
   // VALIDATION
   // =========================
   const isAllAssigned = elements
-    .filter((el: any) => isAssignable(el.element_type?.code))
-    .every((el: any) => assignments[el.id]);
+    .filter((el: ITemplatePosition) => isAssignable(el.element_type?.code))
+    .every((el: ITemplatePosition) => assignments[el.id]);
 
   // =========================
   // SAVE PAYLOAD
   // =========================
-  const handleSave = () => {
-    const payload = Object.entries(assignments)
-      .filter(([_, repId]) => repId)
-      .map(([elementId, repId]) => ({
-        batch_id: batchId,
-        template_position_id: elementId,
-        batch_representative_id: repId,
-      }));
-
-    if (!payload.length) return alert('No changes detected');
-
-    onFinish(payload);
-  };
-
   // =========================
   // UI
   // =========================
   return (
     <div className="p-6 space-y-4">
-
       {/* HEADER */}
       <div className="flex justify-between items-center">
         <Button variant="ghost" onClick={onBack}>
@@ -272,10 +275,7 @@ export default function SixStep({ onFinish, onBack, batchId }: any) {
             <IconZoomOut size={16} />
           </Button>
 
-          <Button
-            onClick={handleNext}
-            disabled={!isAllAssigned}
-          >
+          <Button onClick={handleNext} disabled={!isAllAssigned}>
             {isDirty ? 'Save' : 'Next'}
           </Button>
         </div>
@@ -289,8 +289,7 @@ export default function SixStep({ onFinish, onBack, batchId }: any) {
             onClick={() => setActiveRepId(rep.id)}
             className="px-4 py-2 rounded border cursor-pointer whitespace-nowrap"
             style={{
-              backgroundColor:
-                activeRepId === rep.id ? rep.color : '#fff',
+              backgroundColor: activeRepId === rep.id ? rep.color : '#fff',
             }}
           >
             {rep.name}
@@ -318,8 +317,8 @@ export default function SixStep({ onFinish, onBack, batchId }: any) {
               />
             )}
 
-            {elements.map((el: any) => {
-              const code = el.element_type?.code;
+            {elements.map((el: ITemplatePosition) => {
+              const code = el.element_type?.code?.toLowerCase();
               const assignable = isAssignable(code);
 
               const repId = assignments[el.id];
@@ -332,7 +331,7 @@ export default function SixStep({ onFinish, onBack, batchId }: any) {
                   y={el.y}
                   onClick={() => handleAssign(el.id, assignable)}
                 >
-                  {icons[code?.toLowerCase()] && (
+                  {code && icons[code] && (
                     <KonvaImage
                       image={icons[code.toLowerCase()]}
                       width={el.width || 80}

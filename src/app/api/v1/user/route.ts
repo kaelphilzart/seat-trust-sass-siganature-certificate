@@ -6,7 +6,10 @@ export async function GET() {
     return NextResponse.json({ data: await getAllUsers() });
   } catch (e: any) {
     console.error('GET USER ERROR:', e);
-    return NextResponse.json({ message: e?.message || 'Server error' }, { status: 500 });
+    return NextResponse.json(
+      { message: e?.message || 'Server error' },
+      { status: 500 }
+    );
   }
 }
 
@@ -14,7 +17,10 @@ export async function POST(req: Request) {
   try {
     const { email, password } = await req.json();
     if (!email || !password)
-      return NextResponse.json({ message: 'Email dan password wajib diisi' }, { status: 400 });
+      return NextResponse.json(
+        { message: 'Email dan password wajib diisi' },
+        { status: 400 }
+      );
 
     const u = await createUser({ email, password });
 
@@ -30,6 +36,9 @@ export async function POST(req: Request) {
     );
   } catch (e: any) {
     console.error('POST USER ERROR:', e);
-    return NextResponse.json({ message: e?.message || 'Server error' }, { status: 500 });
+    return NextResponse.json(
+      { message: e?.message || 'Server error' },
+      { status: 500 }
+    );
   }
 }

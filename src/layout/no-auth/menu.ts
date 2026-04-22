@@ -1,23 +1,23 @@
 export type SubmenuItem = {
-  label: string
-  href: string
-}
+  label: string;
+  href: string;
+};
 
 export type HeaderItem = {
-  label: string
-  href: string
-  submenu?: SubmenuItem[]
-}
+  label: string;
+  href: string;
+  submenu?: SubmenuItem[];
+};
 
 export type Link = {
-  label: string
-  href: string
-}
+  label: string;
+  href: string;
+};
 
 export type FooterLinkType = {
-  section: string
-  links: Link[]
-}
+  section: string;
+  links: Link[];
+};
 
 /* =========================
    HEADER NAVIGATION
@@ -28,8 +28,8 @@ export const HeaderData: HeaderItem[] = [
   { label: 'How It Works', href: '/#how-it-works' },
   { label: 'Product', href: '/#product' },
   { label: 'Pricing', href: '/#pricing' },
-  { label: 'Contact', href: '/#contact' }
-]
+  { label: 'Contact', href: '/#contact' },
+];
 
 /* =========================
    FOOTER NAVIGATION (SEAL TRUST VERSION)
@@ -41,8 +41,8 @@ export const FooterLinkData: FooterLinkType[] = [
       { label: 'Certificate Generator', href: '/#product' },
       { label: 'QR Verification', href: '/#product' },
       { label: 'Digital Signature', href: '/#product' },
-      { label: 'Representative Binding', href: '/#product' }
-    ]
+      { label: 'Representative Binding', href: '/#product' },
+    ],
   },
   {
     section: 'System',
@@ -51,7 +51,7 @@ export const FooterLinkData: FooterLinkType[] = [
       { label: 'Security Layer', href: '/#security' },
       { label: 'API Access', href: '/#api' },
       { label: 'Audit Logs', href: '/#audit' },
-      { label: 'System Health', href: '/#status' }
-    ]
-  }
-]
+      { label: 'System Health', href: '/#status' },
+    ],
+  },
+];

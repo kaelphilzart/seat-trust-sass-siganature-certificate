@@ -1,5 +1,9 @@
 import { NextResponse } from 'next/server';
-import { getAllRepresentatives, deleteRepresentative, updateRepresentative, getRepresentativeById } from '@/server/services/representative';
+import {
+  deleteRepresentative,
+  updateRepresentative,
+  getRepresentativeById,
+} from '@/server/services/representative';
 
 // ============================
 // (GET)
@@ -30,7 +34,10 @@ export async function GET(
     const representative = await getRepresentativeById(id);
 
     if (!representative)
-      return NextResponse.json({ message: 'Representative tidak ditemukan' }, { status: 404 });
+      return NextResponse.json(
+        { message: 'Representative tidak ditemukan' },
+        { status: 404 }
+      );
 
     return NextResponse.json(representative);
   } catch (e: any) {
@@ -59,7 +66,7 @@ export async function PATCH(
       );
     return NextResponse.json(
       {
-        message: "Representative berhasil diperbarui",
+        message: 'Representative berhasil diperbarui',
         data: updated,
       },
       { status: 200 }
@@ -82,7 +89,10 @@ export async function DELETE(
 
   try {
     await deleteRepresentative(id);
-    return NextResponse.json({ success: true, message: 'Representative berhasil dihapus' });
+    return NextResponse.json({
+      success: true,
+      message: 'Representative berhasil dihapus',
+    });
   } catch (e: any) {
     return NextResponse.json(
       { success: false, message: e?.message || 'Server error' },

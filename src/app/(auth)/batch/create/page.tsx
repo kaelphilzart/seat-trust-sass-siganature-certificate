@@ -9,9 +9,7 @@ export default async function Page({
 }) {
   const params = await searchParams;
 
-  const batchId = params.batch_id
-    ? decodeId(params.batch_id)
-    : null;
+  const batchId = params.batch_id ? decodeId(params.batch_id) : null;
 
   return (
     <RoleGuard allowed={['ADMIN', 'REPRESENTATIVE']}>

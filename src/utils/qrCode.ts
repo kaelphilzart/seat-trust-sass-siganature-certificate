@@ -5,7 +5,7 @@ export function buildQrTargetUrl(
 ): string | null {
   if (!batchRepresentativeId) return null;
 
-  const base = 'http://localhost:3000'
+  const base = 'http://localhost:3000';
   if (!base) return null;
 
   const token = encodeId(batchRepresentativeId);

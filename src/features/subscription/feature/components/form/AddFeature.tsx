@@ -5,108 +5,110 @@ import { ICreateFeature } from '@/types/feature';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface AddFeatureFormProps {
-    formData?: Partial<ICreateFeature>;
-    onChange?: (data: Partial<ICreateFeature>) => void;
+  formData?: Partial<ICreateFeature>;
+  onChange?: (data: Partial<ICreateFeature>) => void;
 }
 
 const STORAGE_KEY = 'add_feature_form';
 
-export default function AddFeatureForm({ formData, onChange }: AddFeatureFormProps) {
-    const [form, setForm] = useState<Partial<ICreateFeature>>(formData ?? {});
+export default function AddFeatureForm({
+  formData,
+  onChange,
+}: AddFeatureFormProps) {
+  const [form, setForm] = useState<Partial<ICreateFeature>>(formData ?? {});
 
-    /* ===== SAVE DRAFT ===== */
-    useEffect(() => {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(form));
-        onChange?.(form);
-    }, [form, onChange]);
+  /* ===== SAVE DRAFT ===== */
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(form));
+    onChange?.(form);
+  }, [form, onChange]);
 
-    const handleChange = <K extends keyof ICreateFeature>(
-        field: K,
-        value: ICreateFeature[K] | undefined
-    ) => {
-        setForm((prev) => ({ ...prev, [field]: value }));
-    };
+  const handleChange = <K extends keyof ICreateFeature>(
+    field: K,
+    value: ICreateFeature[K] | undefined
+  ) => {
+    setForm((prev) => ({ ...prev, [field]: value }));
+  };
 
-    return (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+  return (
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+      {/* Feature Key */}
+      <div>
+        <label className="mb-1 block text-sm font-medium">Feature Key</label>
+        <Input
+          type="text"
+          value={form.feature_key ?? ''}
+          onChange={(e) => handleChange('feature_key', e.target.value)}
+          placeholder="max_users"
+        />
+      </div>
 
-            {/* Feature Key */}
-            <div>
-                <label className="mb-1 block text-sm font-medium">Feature Key</label>
-                <Input
-                    type="text"
-                    value={form.feature_key ?? ''}
-                    onChange={(e) => handleChange('feature_key', e.target.value)}
-                    placeholder="max_users"
-                />
-            </div>
+      {/* Display Name */}
+      <div>
+        <label className="mb-1 block text-sm font-medium">Display Name</label>
+        <Input
+          type="text"
+          value={form.display_name ?? ''}
+          onChange={(e) => handleChange('display_name', e.target.value)}
+          placeholder="Maximum Users"
+        />
+      </div>
 
-            {/* Display Name */}
-            <div>
-                <label className="mb-1 block text-sm font-medium">Display Name</label>
-                <Input
-                    type="text"
-                    value={form.display_name ?? ''}
-                    onChange={(e) => handleChange('display_name', e.target.value)}
-                    placeholder="Maximum Users"
-                />
-            </div>
+      {/* Feature Type */}
+      <div>
+        <label className="mb-1 block text-sm font-medium">Feature Type</label>
 
-            {/* Feature Type */}
-            <div>
-                <label className="mb-1 block text-sm font-medium">Feature Type</label>
+        <Select
+          value={form.feature_type ?? ''}
+          onValueChange={(value) => handleChange('feature_type', value)}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select feature type" />
+          </SelectTrigger>
 
-                <Select
-                    value={form.feature_type ?? ""}
-                    onValueChange={(value) => handleChange("feature_type", value)}
-                >
-                    <SelectTrigger>
-                        <SelectValue placeholder="Select feature type" />
-                    </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="boolean">Boolean</SelectItem>
+            <SelectItem value="number">Number</SelectItem>
+            <SelectItem value="string">String</SelectItem>
+            <SelectItem value="json">JSON</SelectItem>
+          </SelectContent>
+        </Select>
 
-                    <SelectContent>
-                        <SelectItem value="boolean">Boolean</SelectItem>
-                        <SelectItem value="number">Number</SelectItem>
-                        <SelectItem value="string">String</SelectItem>
-                        <SelectItem value="json">JSON</SelectItem>
-                    </SelectContent>
-                </Select>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Tipe ini menentukan jenis value yang akan digunakan pada plan feature.
+          Misalnya <b>boolean</b> untuk ON/OFF fitur, <b>number</b> untuk limit
+          seperti jumlah user.
+        </p>
+      </div>
 
-                <p className="mt-1 text-xs text-muted-foreground">
-                    Tipe ini menentukan jenis value yang akan digunakan pada plan feature.
-                    Misalnya <b>boolean</b> untuk ON/OFF fitur, <b>number</b> untuk limit seperti jumlah user.
-                </p>
-            </div>
+      {/* Category */}
+      <div>
+        <label className="mb-1 block text-sm font-medium">Category</label>
+        <Input
+          type="text"
+          value={form.category ?? ''}
+          onChange={(e) => handleChange('category', e.target.value)}
+          placeholder="limits / access / integration"
+        />
+      </div>
 
-            {/* Category */}
-            <div>
-                <label className="mb-1 block text-sm font-medium">Category</label>
-                <Input
-                    type="text"
-                    value={form.category ?? ''}
-                    onChange={(e) => handleChange('category', e.target.value)}
-                    placeholder="limits / access / integration"
-                />
-            </div>
-
-            {/* Description */}
-            <div className="md:col-span-2">
-                <label className="mb-1 block text-sm font-medium">Description</label>
-                <Textarea
-                    value={form.description ?? ''}
-                    onChange={(e) => handleChange('description', e.target.value)}
-                    placeholder="Explain what this feature controls..."
-                />
-            </div>
-
-        </div>
-    );
+      {/* Description */}
+      <div className="md:col-span-2">
+        <label className="mb-1 block text-sm font-medium">Description</label>
+        <Textarea
+          value={form.description ?? ''}
+          onChange={(e) => handleChange('description', e.target.value)}
+          placeholder="Explain what this feature controls..."
+        />
+      </div>
+    </div>
+  );
 }

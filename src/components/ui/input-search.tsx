@@ -12,7 +12,13 @@ interface InputSearchProps extends React.InputHTMLAttributes<HTMLInputElement> {
   className?: string;
 }
 
-export function InputSearch({ placeholder, value, onChange, className, ...props }: InputSearchProps) {
+export function InputSearch({
+  placeholder,
+  value,
+  onChange,
+  className,
+  ...props
+}: InputSearchProps) {
   return (
     <div className={cn('relative w-full max-w-sm', className)}>
       {/* Icon */}

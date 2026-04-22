@@ -3,7 +3,6 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { IconArrowLeft, IconUpload } from '@tabler/icons-react';
-import { ICreateBatch } from '@/types/batch';
 import { useGetAllTemplate } from '@/hooks/template';
 import TemplateCarousel, { Template } from '@/components/custom/Carousel';
 
@@ -21,7 +20,6 @@ type TwoStepProps = {
 };
 
 export default function TwoStep({
-  event,
   templateId,
   organizationId,
   onSelectTemplate,
@@ -33,7 +31,9 @@ export default function TwoStep({
   );
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
 
-  const { templates, templatesError, templatesLoading } = useGetAllTemplate(organizationId ?? undefined);
+  const { templates, templatesError, templatesLoading } = useGetAllTemplate(
+    organizationId ?? undefined
+  );
 
   const handleSelectTemplate = (id: string) => {
     setSelectedTemplate(id);
@@ -44,15 +44,6 @@ export default function TwoStep({
     const file = e.target.files?.[0];
     if (!file) return;
     setUploadedFile(file);
-  };
-
-  const batchPayload: ICreateBatch = {
-    name: event.name || undefined,
-    organization_id: organizationId || undefined, // <-- ambil dari prop
-    start_date: event.start_date ? new Date(event.start_date) : undefined,
-    end_date: event.end_date ? new Date(event.end_date) : undefined,
-    template_id: selectedTemplate || undefined,
-    status: 'DRAFT',
   };
 
   return (
@@ -94,11 +85,11 @@ export default function TwoStep({
             onSelect={handleSelectTemplate}
           />
         ) : (
-          <div className="text-sm text-gray-500">Belum ada template tersedia</div>
+          <div className="text-sm text-gray-500">
+            Belum ada template tersedia
+          </div>
         )}
       </div>
-
-    
 
       {/* ACTION */}
       <div className="flex justify-end gap-2">

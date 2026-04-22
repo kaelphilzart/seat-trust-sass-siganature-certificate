@@ -41,10 +41,7 @@ export default function Modal({
           role="dialog"
         >
           {/* Backdrop tanpa motion & blur → lebih ringan */}
-          <div
-            className="absolute inset-0 bg-black/50"
-            onClick={onClose}
-          />
+          <div className="absolute inset-0 bg-black/50" onClick={onClose} />
 
           {/* Modal Content */}
           <motion.div
@@ -77,9 +74,7 @@ export default function Modal({
             </div>
 
             {/* Body */}
-            <div className={cn('px-4 py-4', bodyClassName)}>
-              {children}
-            </div>
+            <div className={cn('px-4 py-4', bodyClassName)}>{children}</div>
 
             {/* Footer hanya muncul kalau form mode */}
             {isFormMode && (

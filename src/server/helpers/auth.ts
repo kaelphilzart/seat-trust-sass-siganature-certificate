@@ -1,6 +1,6 @@
 // src/server/helpers/auth.ts
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
 export interface AuthUser {
   id: string;
@@ -12,7 +12,7 @@ export async function getAuthUser(): Promise<AuthUser> {
   const session = await getServerSession(authOptions);
 
   if (!session?.user) {
-    throw new Error("Unauthorized");
+    throw new Error('Unauthorized');
   }
 
   return {

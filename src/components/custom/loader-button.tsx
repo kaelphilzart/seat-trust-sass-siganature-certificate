@@ -1,9 +1,8 @@
 'use client';
 
 import * as React from 'react';
-import { Slot } from '@radix-ui/react-slot';
 import { cn } from '@/lib/utils';
-import { Button, buttonVariants, type ButtonProps } from '../ui/button';
+import { Button, type ButtonProps } from '../ui/button';
 import { Loader2 } from 'lucide-react'; // spinner icon, bisa diganti
 
 interface LoaderButtonProps extends ButtonProps {
@@ -12,10 +11,15 @@ interface LoaderButtonProps extends ButtonProps {
 }
 
 const LoaderButton = React.forwardRef<HTMLButtonElement, LoaderButtonProps>(
-  ({ children, loadingText = 'Loading...', disabled, onClick, ...props }, ref) => {
+  (
+    { children, loadingText = 'Loading...', disabled, onClick, ...props },
+    ref
+  ) => {
     const [isLoading, setIsLoading] = React.useState(false);
 
-    const handleClick = async (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
+    const handleClick = async (
+      e: React.MouseEvent<HTMLButtonElement, MouseEvent>
+    ) => {
       if (onClick) {
         setIsLoading(true);
         try {
@@ -32,7 +36,10 @@ const LoaderButton = React.forwardRef<HTMLButtonElement, LoaderButtonProps>(
         disabled={disabled || isLoading}
         ref={ref}
         onClick={handleClick}
-        className={cn(props.className, 'flex items-center justify-center gap-2')}
+        className={cn(
+          props.className,
+          'flex items-center justify-center gap-2'
+        )}
       >
         {isLoading ? (
           <>

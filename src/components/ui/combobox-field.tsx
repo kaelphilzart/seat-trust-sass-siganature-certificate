@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import * as React from 'react';
@@ -13,7 +11,11 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui/command';
-import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+} from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 
 interface ComboboxFieldProps<T> {
@@ -46,7 +48,9 @@ export function ComboboxField<T>({
         <div
           className={cn(
             'border-input bg-background relative flex h-10 w-full items-center rounded-md border px-3 text-sm',
-            disabled ? 'cursor-not-allowed opacity-50' : 'hover:border-primary cursor-text'
+            disabled
+              ? 'cursor-not-allowed opacity-50'
+              : 'hover:border-primary cursor-text'
           )}
         >
           <input

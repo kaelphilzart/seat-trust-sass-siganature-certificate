@@ -1,5 +1,9 @@
 import { NextResponse } from 'next/server';
-import { getAllOrganizationsAssets, deleteOrganizationAsset, updateOrganizationAsset } from '@/server/services/organizationAssetServices';
+import {
+  getAllOrganizationsAssets,
+  deleteOrganizationAsset,
+  updateOrganizationAsset,
+} from '@/server/services/organizationAssetServices';
 import { uploadToCloudinaryOrganizationAsset } from '@/server/services/upload';
 import { AssetType } from '@/types/organization';
 
@@ -7,23 +11,22 @@ import { AssetType } from '@/types/organization';
 // (GET)
 // ============================
 export async function GET(
-    _: Request,
-    { params }: { params: Promise<{ id: string }> }
+  _: Request,
+  { params }: { params: Promise<{ id: string }> }
 ) {
-    try {
-        const organizationId = (await params).id;
-        const data = await getAllOrganizationsAssets(organizationId);
+  try {
+    const organizationId = (await params).id;
+    const data = await getAllOrganizationsAssets(organizationId);
 
-        return NextResponse.json({ data });
-    } catch (e: any) {
-        console.error('GET Organization Asset ERROR:', e);
-        return NextResponse.json(
-            { message: e?.message || 'Server error' },
-            { status: 500 }
-        );
-    }
+    return NextResponse.json({ data });
+  } catch (e: any) {
+    console.error('GET Organization Asset ERROR:', e);
+    return NextResponse.json(
+      { message: e?.message || 'Server error' },
+      { status: 500 }
+    );
+  }
 }
-
 
 // ============================
 // (PATCH)
@@ -116,7 +119,6 @@ export async function PATCH(
       message: 'Organization Asset berhasil diupdate',
       data: updated,
     });
-
   } catch (e: any) {
     console.error('PATCH ORGANIZATION ASSET ERROR:', e);
 
@@ -130,18 +132,21 @@ export async function PATCH(
 // DELETE
 // ============================
 export async function DELETE(
-    _: Request,
-    { params }: { params: Promise<{ id: string }> }
+  _: Request,
+  { params }: { params: Promise<{ id: string }> }
 ) {
-    const { id } = await params;
+  const { id } = await params;
 
-    try {
-        await deleteOrganizationAsset(id);
-        return NextResponse.json({ success: true, message: 'Organization Asset berhasil dihapus' });
-    } catch (e: any) {
-        return NextResponse.json(
-            { success: false, message: e?.message || 'Server error' },
-            { status: 500 }
-        );
-    }
+  try {
+    await deleteOrganizationAsset(id);
+    return NextResponse.json({
+      success: true,
+      message: 'Organization Asset berhasil dihapus',
+    });
+  } catch (e: any) {
+    return NextResponse.json(
+      { success: false, message: e?.message || 'Server error' },
+      { status: 500 }
+    );
+  }
 }

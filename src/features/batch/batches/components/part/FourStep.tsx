@@ -6,17 +6,21 @@ import {
   Layer,
   Image as KonvaImage,
   Group,
-  Text,
   Rect,
   Transformer,
 } from 'react-konva';
+import Image from 'next/image';
+import Konva from 'konva';
 import { Button } from '@/components/ui/button';
+import type { KonvaEventObject } from 'konva/lib/Node';
+import type { Stage as KonvaStage } from 'konva/lib/Stage';
+import type { Transformer as KonvaTransformer } from 'konva/lib/shapes/Transformer';
 import {
   IconTrash,
   IconHandStop,
   IconPencil,
   IconArrowLeft,
-  IconArrowRight, IconEdit,
+  IconArrowRight,
 } from '@tabler/icons-react';
 import { ComboboxField } from '@/components/ui/combobox-field';
 import { useGetOneBatch } from '@/hooks/batch';
@@ -24,12 +28,12 @@ import { useSession } from 'next-auth/react';
 import { useGetAllElementType } from '@/hooks/element-type';
 import { useGetAllOrganizationAssets } from '@/hooks/organization-asset';
 import { Input } from '@/components/ui/input';
-import { createOrganizationAsset } from '@/hooks/organization-asset';
 
-import {
-  useGetAllTemplatePositions, createTemplatePositionBulk,
-  editTemplatePositionBulk, deleteTemplatePosition
-} from '@/hooks/template-position';
+import { IElementType } from '@/types/element-type';
+import { ITemplatePosition } from '@/types/template-position';
+import { IOrganizationAsset } from '@/types/organization';
+
+import { useGetAllTemplatePositions } from '@/hooks/template-position';
 
 type Mode = 'move' | 'edit';
 
@@ -42,22 +46,15 @@ type Element = {
   height: number;
   rotation?: number;
 };
+type AssetItem = {
+  id: string;
+  name: string;
+  file_path?: string;
+};
 
-export default function Step4SetupTemplate({
-  onBack,
-  onFinish,
-  batchId,
-}: any) {
-  if (!batchId) {
-    return (
-      <div className="p-6 text-center">
-        Batch tidak ditemukan
-        <Button onClick={onBack}>Kembali</Button>
-      </div>
-    );
-  }
-
+export default function Step4SetupTemplate({ onBack, onFinish, batchId }: any) {
   const { batchOne } = useGetOneBatch(batchId);
+
   const { data: session } = useSession();
 
   // 🔥 FIX HOOK (NO .data)
@@ -67,35 +64,62 @@ export default function Step4SetupTemplate({
   const features = session?.user?.features || {};
 
   // template positioning
-  const { templatePositions, templatePositionsLoading } = useGetAllTemplatePositions(batchId)
+  const { templatePositions, templatePositionsLoading } =
+    useGetAllTemplatePositions(batchId);
 
   const [elements, setElements] = useState<Element[]>([]);
   const [history, setHistory] = useState<Element[][]>([]);
   const [future, setFuture] = useState<Element[][]>([]);
 
-  const [elementImages, setElementImages] = useState<Record<string, HTMLImageElement>>({});
+  const [elementImages, setElementImages] = useState<
+    Record<string, HTMLImageElement>
+  >({});
   const [image, setImage] = useState<HTMLImageElement | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [mode, setMode] = useState<Mode>('move');
-  const { OrganizationAssets } = useGetAllOrganizationAssets(session?.user.organization_id);
+  const { OrganizationAssets } = useGetAllOrganizationAssets(
+    session?.user.organization_id
+  );
   const [stageSize, setStageSize] = useState({
     width: 800,
     height: 600,
   });
-  const isEmptyTemplate =
-    !templatePositions || templatePositions.length === 0;
   const [initialElements, setInitialElements] = useState<Element[]>([]);
   const [initialAssets, setInitialAssets] = useState({});
-  const [isDirty, setIsDirty] = useState(false);
 
+  const idCounter = useRef(0);
 
-  const [selectedAssets, setSelectedAssets] = useState<Record<string, string>>({});
+  const [selectedAssets, setSelectedAssets] = useState<Record<string, string>>(
+    {}
+  );
 
   const [scale, setScale] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
 
-  const stageRef = useRef<any>(null);
-  const trRef = useRef<any>(null);
+  const stageRef = useRef<KonvaStage | null>(null);
+  const trRef = useRef<KonvaTransformer | null>(null);
+
+  const normalize = (arr: Element[]) =>
+    arr.map((el) => ({
+      id: el.id,
+      type: el.type,
+      x: Math.round(el.x),
+      y: Math.round(el.y),
+      width: Math.round(el.width),
+      height: Math.round(el.height),
+      rotation: Math.round(el.rotation ?? 0),
+    }));
+
+  const isDirty = React.useMemo(() => {
+    const isSameElements =
+      JSON.stringify(normalize(elements)) ===
+      JSON.stringify(normalize(initialElements));
+
+    const isSameAssets =
+      JSON.stringify(selectedAssets) === JSON.stringify(initialAssets);
+
+    return !(isSameElements && isSameAssets);
+  }, [elements, selectedAssets, initialElements, initialAssets]);
 
   /* ================= LOAD IMAGE ================= */
   useEffect(() => {
@@ -120,10 +144,12 @@ export default function Step4SetupTemplate({
 
     const source =
       templatePositions?.length > 0
-        ? templatePositions.map((tp: any) => tp.element_type)
-        : elementTypes;
+        ? templatePositions
+            .map((tp) => tp.element_type)
+            .filter((el): el is IElementType => !!el)
+        : (elementTypes ?? []);
 
-    source.forEach((el: any) => {
+    source.forEach((el: IElementType) => {
       if (!el || el.ui_type !== 'element') return;
 
       const code = el.code.toLowerCase();
@@ -147,7 +173,7 @@ export default function Step4SetupTemplate({
 
     const assetMap: Record<string, string> = {};
 
-    templatePositions.forEach((tp: any) => {
+    templatePositions.forEach((tp: ITemplatePosition) => {
       if (tp.asset?.id && tp.element_type_id) {
         assetMap[tp.element_type_id] = tp.asset.id;
       }
@@ -163,43 +189,21 @@ export default function Step4SetupTemplate({
     // 🔥 prevent overwrite saat user sedang edit
     if (isDirty) return;
 
-    const mapped: Element[] = templatePositions.map((tp: any) => ({
-      id: tp.id,
-      type: tp.element_type?.code?.toLowerCase(),
-      x: tp.x ?? 0,
-      y: tp.y ?? 0,
-      width: tp.width ?? 120,
-      height: tp.height ?? 60,
-      rotation: tp.rotation ?? 0,
-    }));
+    const mapped: Element[] = templatePositions
+      .filter((tp) => tp.element_type?.code) // 🔥 buang yang invalid
+      .map((tp) => ({
+        id: tp.id,
+        type: tp.element_type!.code.toLowerCase(),
+        x: tp.x ?? 0,
+        y: tp.y ?? 0,
+        width: tp.width ?? 120,
+        height: tp.height ?? 60,
+        rotation: tp.rotation ?? 0,
+      }));
 
     setElements(mapped);
     setInitialElements(mapped);
   }, [templatePositions, isDirty]);
-
-  const normalize = (arr: Element[]) =>
-    arr.map((el) => ({
-      id: el.id,
-      type: el.type,
-      x: Math.round(el.x),
-      y: Math.round(el.y),
-      width: Math.round(el.width),
-      height: Math.round(el.height),
-      rotation: Math.round(el.rotation ?? 0),
-    }));
-
-  useEffect(() => {
-    const isSameElements =
-      JSON.stringify(normalize(elements)) ===
-      JSON.stringify(normalize(initialElements));
-
-    const isSameAssets =
-      JSON.stringify(selectedAssets) ===
-      JSON.stringify(initialAssets);
-
-    setIsDirty(!(isSameElements && isSameAssets));
-  }, [elements, selectedAssets, initialElements, initialAssets]);
-
 
   /* ================= HISTORY ================= */
   const pushHistory = (newState: Element[]) => {
@@ -208,7 +212,7 @@ export default function Step4SetupTemplate({
     setElements(newState);
   };
 
-  const undo = () => {
+  const undo = React.useCallback(() => {
     setHistory((prev) => {
       if (prev.length === 0) return prev;
 
@@ -219,9 +223,9 @@ export default function Step4SetupTemplate({
 
       return prev.slice(0, -1);
     });
-  };
+  }, [elements]);
 
-  const redo = () => {
+  const redo = React.useCallback(() => {
     setFuture((prev) => {
       if (prev.length === 0) return prev;
 
@@ -232,10 +236,10 @@ export default function Step4SetupTemplate({
 
       return prev.slice(1);
     });
-  };
+  }, [elements]);
 
   /* ================= FEATURE LOGIC ================= */
-  const canUseElement = (el: any) => {
+  const canUseElement = (el: IElementType) => {
     if (!el.feature_key) return true;
 
     const value = features[el.feature_key];
@@ -257,7 +261,7 @@ export default function Step4SetupTemplate({
   };
 
   /* ================= ELEMENT ================= */
-  const addElement = (el: any) => {
+  const addElement = (el: IElementType) => {
     if (!canUseElement(el)) {
       alert('Limit reached / not allowed');
       return;
@@ -266,7 +270,7 @@ export default function Step4SetupTemplate({
     pushHistory([
       ...elements,
       {
-        id: Date.now().toString(),
+        id: `el-${idCounter.current++}`,
         type: el.code.toLowerCase(),
         x: 120,
         y: 120,
@@ -282,21 +286,19 @@ export default function Step4SetupTemplate({
   };
 
   const updatePosition = (id: string, x: number, y: number) => {
-    pushHistory(
-      elements.map((el) => (el.id === id ? { ...el, x, y } : el))
-    );
+    pushHistory(elements.map((el) => (el.id === id ? { ...el, x, y } : el)));
   };
 
-
-
   /* ================= ZOOM ================= */
-  const handleWheel = (e: any) => {
+  const handleWheel = (e: KonvaEventObject<WheelEvent>) => {
     if (!e.evt.ctrlKey) return;
 
     e.evt.preventDefault();
 
-    const stage = stageRef.current;
     const oldScale = scale;
+
+    const stage = stageRef.current;
+    if (!stage) return;
 
     const pointer = stage.getPointerPosition();
     if (!pointer) return;
@@ -309,8 +311,7 @@ export default function Step4SetupTemplate({
     const scaleBy = 1.08;
     const direction = e.evt.deltaY > 0 ? -1 : 1;
 
-    const newScale =
-      direction > 0 ? oldScale * scaleBy : oldScale / scaleBy;
+    const newScale = direction > 0 ? oldScale * scaleBy : oldScale / scaleBy;
 
     const clampedScale = Math.min(4, Math.max(0.2, newScale));
 
@@ -323,7 +324,7 @@ export default function Step4SetupTemplate({
     setPosition(newPos);
   };
 
-  const handleTransformEnd = (node: any, id: string) => {
+  const handleTransformEnd = (node: Konva.Node, id: string) => {
     const scaleX = node.scaleX();
     const scaleY = node.scaleY();
 
@@ -337,13 +338,13 @@ export default function Step4SetupTemplate({
       elements.map((el) =>
         el.id === id
           ? {
-            ...el,
-            x: node.x(),
-            y: node.y(),
-            width: Math.max(20, newWidth),
-            height: Math.max(20, newHeight),
-            rotation: node.rotation(),
-          }
+              ...el,
+              x: node.x(),
+              y: node.y(),
+              width: Math.max(20, newWidth),
+              height: Math.max(20, newHeight),
+              rotation: node.rotation(),
+            }
           : el
       )
     );
@@ -386,13 +387,15 @@ export default function Step4SetupTemplate({
 
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [elements, history, future]);
+  }, [elements, history, future, undo, redo]);
 
   /* ================= TRANSFORMER ================= */
   useEffect(() => {
     if (!trRef.current || mode !== 'edit') return;
 
     const stage = stageRef.current;
+    if (!stage || !selectedId) return;
+
     const node = stage.findOne(`#${selectedId}`);
 
     if (node) trRef.current.nodes([node]);
@@ -401,38 +404,39 @@ export default function Step4SetupTemplate({
 
   /* ================= SAVE ================= */
   const getFinalData = () => {
-    const elementPayload = elements.map((el) => {
-      const elType = elementTypes?.find(
-        (et: any) =>
-          et.code?.toLowerCase() === el.type.toLowerCase()
-      );
+    const elementPayload = elements
+      .map((el) => {
+        const elType = elementTypes?.find(
+          (et: IElementType) => et.code?.toLowerCase() === el.type.toLowerCase()
+        );
 
-      if (!elType) return null;
+        if (!elType) return null;
 
-      const isFromDB = templatePositions?.some((tp: any) => tp.id === el.id);
+        const isFromDB = templatePositions?.some(
+          (tp: ITemplatePosition) => tp.id === el.id
+        );
 
-      return {
-        ...(isFromDB && { id: el.id }),
-        element_type_id: elType.id,
+        return {
+          ...(isFromDB && { id: el.id }),
+          element_type_id: elType.id,
 
-        x: Math.round(el.x),
-        y: Math.round(el.y),
-        width: Math.round(el.width),
-        height: Math.round(el.height),
-        rotation: Math.round(el.rotation ?? 0),
+          x: Math.round(el.x),
+          y: Math.round(el.y),
+          width: Math.round(el.width),
+          height: Math.round(el.height),
+          rotation: Math.round(el.rotation ?? 0),
 
-        asset_id: null,
-        font_size: null,
-        font_weight: null,
-      };
-    }).filter(Boolean);
+          asset_id: null,
+          font_size: null,
+          font_weight: null,
+        };
+      })
+      .filter(Boolean);
 
     // 🔥 ASSET (font/logo)
     const assetPayload = Object.entries(selectedAssets)
-      .filter(([_, assetId]) =>
-        assetId &&
-        assetId !== 'upload' &&
-        assetId !== 'none' // 🔥 INI YANG KURANG
+      .filter(
+        ([, assetId]) => assetId && assetId !== 'upload' && assetId !== 'none' // 🔥 INI YANG KURANG
       )
       .map(([elementTypeId, assetId]) => ({
         element_type_id: elementTypeId,
@@ -458,16 +462,26 @@ export default function Step4SetupTemplate({
   const getAssetsByType = (assetType: string) => {
     if (!OrganizationAssets) return [];
 
-    return OrganizationAssets.filter((asset: any) =>
-      asset.type?.toLowerCase() === assetType?.toLowerCase()
+    return OrganizationAssets.filter(
+      (asset: IOrganizationAsset) =>
+        asset.type?.toLowerCase() === assetType?.toLowerCase()
     );
   };
   if (templatePositionsLoading) {
     return <div className="p-6">Loading template...</div>;
   }
+
+  if (!batchId) {
+    return (
+      <div className="p-6 text-center">
+        Batch tidak ditemukan
+        <Button onClick={onBack}>Kembali</Button>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-4 p-6">
-
       {/* HEADER */}
       <div className="flex justify-between items-center">
         <Button variant="outline" onClick={onBack}>
@@ -489,8 +503,12 @@ export default function Step4SetupTemplate({
             </Button>
           )}
 
-          <Button onClick={undo}><IconArrowLeft size={16} /></Button>
-          <Button onClick={redo}><IconArrowRight size={16} /></Button>
+          <Button onClick={undo}>
+            <IconArrowLeft size={16} />
+          </Button>
+          <Button onClick={redo}>
+            <IconArrowRight size={16} />
+          </Button>
         </div>
 
         <div className="flex items-center gap-2">
@@ -510,7 +528,7 @@ export default function Step4SetupTemplate({
 
       {/* 🔥 DYNAMIC BUTTON */}
       <div className="flex gap-2 items-center flex-wrap">
-        {elementTypes?.map((el: any) => {
+        {elementTypes?.map((el: IElementType) => {
           const allowed = canUseElement(el);
           const uiType = el.ui_type?.toLowerCase();
 
@@ -523,7 +541,12 @@ export default function Step4SetupTemplate({
                 onClick={() => addElement(el)}
                 title={el.name}
               >
-                <img src={el.icon_path} className="w-4 h-4" />
+                <Image
+                  src={el.icon_path}
+                  alt={el.name}
+                  width={16}
+                  height={16}
+                />
               </Button>
             );
           }
@@ -532,22 +555,29 @@ export default function Step4SetupTemplate({
           if (uiType === 'asset') {
             const assets = getAssetsByType(el.asset_type);
 
-            // 🔥 inject upload option di paling bawah
-            const itemsWithUpload = [
-              { id: 'none', name: 'Tidak ada' }, // 🔥 tambahan
-              ...assets,
+            const itemsWithUpload: AssetItem[] = [
+              { id: 'none', name: 'Tidak ada' },
+
+              ...(assets ?? [])
+                .filter((a) => a.id)
+                .map((a) => ({
+                  id: a.id as string, // sekarang aman
+                  name: a.name ?? 'No Name',
+                  file_path: a.file_path,
+                })),
+
               { id: 'upload', name: '+ Upload New', file_path: 'upload' },
             ];
 
             return (
               <div key={el.id} className="flex items-center gap-2">
-                <ComboboxField
+                <ComboboxField<AssetItem>
                   value={selectedAssets[el.id] ?? ''}
                   items={itemsWithUpload}
-                  getValue={(item: any) =>
+                  getValue={(item) =>
                     item.file_path === 'upload' ? 'upload' : item.id
                   }
-                  getLabel={(item: any) => item.name}
+                  getLabel={(item) => item.name}
                   placeholder={`Pilih ${el.name}`}
                   onChange={(value) => {
                     // 🔥 HANDLE UPLOAD
@@ -625,15 +655,15 @@ export default function Step4SetupTemplate({
                 id={el.id}
                 x={el.x}
                 y={el.y}
-                width={el.width}      // 🔥 WAJIB
-                height={el.height}    // 🔥 WAJIB
+                width={el.width} // 🔥 WAJIB
+                height={el.height} // 🔥 WAJIB
                 draggable={mode === 'move'}
                 onClick={() => setSelectedId(el.id)}
-                onDragEnd={(e) =>
+                onDragEnd={(e: KonvaEventObject<DragEvent>) =>
                   updatePosition(el.id, e.target.x(), e.target.y())
                 }
-                onTransformEnd={(e) =>
-                  handleTransformEnd(e.target, el.id) // 🔥 PINDAH SINI
+                onTransformEnd={
+                  (e) => handleTransformEnd(e.target, el.id) // 🔥 PINDAH SINI
                 }
               >
                 {/* 🔥 IMAGE ELEMENT */}
@@ -656,14 +686,17 @@ export default function Step4SetupTemplate({
             ))}
 
             {mode === 'edit' && (
-              <Transformer ref={trRef} rotateEnabled
+              <Transformer
+                ref={trRef}
+                rotateEnabled
                 keepRatio={false}
                 boundBoxFunc={(oldBox, newBox) => {
                   if (newBox.width < 20 || newBox.height < 20) {
                     return oldBox;
                   }
                   return newBox;
-                }} />
+                }}
+              />
             )}
           </Layer>
         </Stage>

@@ -16,22 +16,8 @@ export default function EditPlanFeatureValueForm({
   formData,
   onChange,
 }: EditPlanFeatureValueFormProps) {
+  const [form, setForm] = useState<IUpdatePlanFeatureValue>(formData ?? {});
 
-  const [form, setForm] = useState<IUpdatePlanFeatureValue>({
-    ...formData,
-  });
-
-  /* ===== SYNC DATA (EDIT MODE) ===== */
-  useEffect(() => {
-    if (formData) {
-      setForm((prev) => ({
-        ...prev,
-        ...formData,
-      }));
-    }
-  }, [formData]);
-
-  /* ===== EMIT CHANGE ===== */
   useEffect(() => {
     if (!formData?.id) return;
     onChange?.({ ...form, id: formData.id });
@@ -48,7 +34,6 @@ export default function EditPlanFeatureValueForm({
 
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-
       <div>
         <Label className="mb-1 block text-sm font-medium">
           {form.feature?.display_name}
@@ -97,7 +82,6 @@ export default function EditPlanFeatureValueForm({
           />
         )}
       </div>
-
     </div>
   );
 }

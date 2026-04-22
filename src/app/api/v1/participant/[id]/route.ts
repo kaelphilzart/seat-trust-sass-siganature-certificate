@@ -1,25 +1,28 @@
 import { NextResponse } from 'next/server';
-import { getAllParticipants, updateParticipant } from '@/server/services/participantServices';
+import {
+  getAllParticipants,
+  updateParticipant,
+} from '@/server/services/participantServices';
 
 // ============================
 // (GET)
 // ============================
 export async function GET(
-    _: Request,
-    { params }: { params: Promise<{ id: string }> }
+  _: Request,
+  { params }: { params: Promise<{ id: string }> }
 ) {
-    try {
-        const batchId = (await params).id;
-        const data = await getAllParticipants(batchId);
+  try {
+    const batchId = (await params).id;
+    const data = await getAllParticipants(batchId);
 
-        return NextResponse.json({ data });
-    } catch (e: any) {
-        console.error('GET Participant ERROR:', e);
-        return NextResponse.json(
-            { message: e?.message || 'Server error' },
-            { status: 500 }
-        );
-    }
+    return NextResponse.json({ data });
+  } catch (e: any) {
+    console.error('GET Participant ERROR:', e);
+    return NextResponse.json(
+      { message: e?.message || 'Server error' },
+      { status: 500 }
+    );
+  }
 }
 
 // ============================
@@ -40,7 +43,7 @@ export async function PATCH(
       );
     return NextResponse.json(
       {
-        message: "Participant berhasil diperbarui",
+        message: 'Participant berhasil diperbarui',
         data: updated,
       },
       { status: 200 }

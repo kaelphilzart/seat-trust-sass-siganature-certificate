@@ -6,9 +6,5 @@ import { Skeleton } from '@/components/ui/skeleton';
 export default function OrganizationUserPage() {
   const { section } = useOrganizationUser();
 
-  return (
-    <Suspense fallback={<Skeleton />}>
-      {section}
-    </Suspense>
-  );
+  return <Suspense fallback={<Skeleton />}>{section}</Suspense>;
 }

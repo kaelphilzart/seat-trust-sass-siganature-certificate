@@ -1,135 +1,120 @@
 import { pool } from '@/lib/db';
 import { redis } from '@/lib/redis';
-import { IOrganizationAsset, ICreateOrganizationAsset, IUpdateOrganizationAsset } from '@/types/organization';
+import {
+  ICreateOrganizationAsset,
+  IUpdateOrganizationAsset,
+} from '@/types/organization';
 import { randomUUID } from 'crypto';
+import { mapOrganizationAsset } from '../mappers/OrganizationAsset.mapper';
+import {
+  OrganizationAssetRow,
+  OrganizationAssetOrgRow,
+} from '../interfaces/OrganizationAsset.interface';
 
 const CACHE_ALL_ORGANIZATION_ASSETS = 'organizations_assets:all';
 
 // GET
-export const getAllOrganizationsAssets = async (
-    organization_id?: string
-): Promise<IOrganizationAsset[]> => {
-    const cacheKey = organization_id
-        ? `${CACHE_ALL_ORGANIZATION_ASSETS}:${organization_id}`
-        : CACHE_ALL_ORGANIZATION_ASSETS;
+export const getAllOrganizationsAssets = async (organization_id?: string) => {
+  const cacheKey = organization_id
+    ? `${CACHE_ALL_ORGANIZATION_ASSETS}:${organization_id}`
+    : CACHE_ALL_ORGANIZATION_ASSETS;
 
-    const cached = await redis.get<IOrganizationAsset[]>(cacheKey);
-    if (cached) return cached;
+  const cached = await redis.get(cacheKey);
+  if (cached) return cached;
 
-    const conditions: string[] = [];
-    const values: any[] = [];
+  const conditions: string[] = [];
+  const values: string[] = [];
 
-    if (organization_id) {
-        conditions.push("oa.organization_id = ?");
-        values.push(organization_id);
-    }
+  if (organization_id) {
+    conditions.push('oa.organization_id = ?');
+    values.push(organization_id);
+  }
 
-    const whereClause = conditions.length
-        ? `WHERE ${conditions.join(" AND ")}`
-        : "";
+  const whereClause = conditions.length
+    ? `WHERE ${conditions.join(' AND ')}`
+    : '';
 
-    const [rows] = await pool.query(
-        `
-    SELECT 
-      oa.id,
-      oa.name,
-      oa.type,
-      oa.file_path,
-      oa.created_at,
-      oa.updated_at,
+  const [rows] = await pool.query<OrganizationAssetRow[]>(
+    `
+        SELECT 
+          oa.id,
+          oa.name,
+          oa.type,
+          oa.file_path,
+          oa.created_at,
+          oa.updated_at,
 
-      o.id as org_id,
-      o.name as org_name
+          o.id as org_id,
+          o.name as org_name
 
-    FROM organization_assets oa
-    LEFT JOIN organizations o 
-      ON o.id = oa.organization_id
+        FROM organization_assets oa
+        LEFT JOIN organizations o 
+          ON o.id = oa.organization_id
 
-    ${whereClause}
-    ORDER BY oa.created_at DESC
-    `,
-        values
-    );
+        ${whereClause}
+        ORDER BY oa.created_at DESC
+        `,
+    values
+  );
 
-    const assets: IOrganizationAsset[] = (rows as any[]).map((row) => ({
-        id: row.id,
-        name: row.name,
-        type: row.type,
-        file_path: row.file_path,
-        created_at: row.created_at,
-        updated_at: row.updated_at,
+  const assets = rows.map(mapOrganizationAsset);
+  await redis.set(cacheKey, assets, { ex: 60 });
 
-        organization: row.org_id
-            ? {
-                id: row.org_id,
-                name: row.org_name,
-            }
-            : undefined,
-    }));
-
-    await redis.set(cacheKey, assets, { ex: 60 });
-
-    return assets;
+  return assets;
 };
 
 // GET BY ID
-export const getOrganizationAssetById = async (id: string): Promise<IOrganizationAsset | null> => {
-    const [rows] = await pool.query(`
+export const getOrganizationAssetById = async (id: string) => {
+  const [rows] = await pool.query<OrganizationAssetRow[]>(
+    `
         SELECT 
-            oa.*,
-            o.id as organization_id,
-            o.name as organization_name
+            oa.id,
+            oa.name,
+            oa.type,
+            oa.file_path,
+            oa.created_at,
+            oa.updated_at,
+
+            o.id as org_id,
+            o.name as org_name
+
         FROM organization_assets oa
-        LEFT JOIN organizations o ON o.id = oa.organization_id
+        LEFT JOIN organizations o 
+            ON o.id = oa.organization_id
         WHERE oa.id = ?
         LIMIT 1
-    `, [id]);
+        `,
+    [id]
+  );
 
-    const row = (rows as any[])[0];
-    if (!row) return null;
+  const row = rows[0];
+  if (!row) return null;
 
-    return {
-        id: row.id,
-        name: row.name,
-        type: row.type,
-        file_path: row.file_path,
-        created_at: row.created_at,
-        updated_at: row.updated_at,
-        organization: {
-            id: row.organization_id,
-            name: row.organization_name,
-        }
-    };
+  return mapOrganizationAsset(row);
 };
-
 
 // ===============================
 // (POST)
 // ===============================
 export const createOrganizationAsset = async (
-    data: ICreateOrganizationAsset
-): Promise<IOrganizationAsset | null> => {
-    const id = randomUUID();
+  data: ICreateOrganizationAsset
+) => {
+  const id = randomUUID();
 
-    await pool.query(
-        `
-    INSERT INTO organization_assets
-    (id, organization_id, name, type, file_path)
-    VALUES (?, ?, ?, ?, ?)
-    `,
-        [
-            id,
-            data.organization_id,
-            data.name,
-            data.type,
-            data.file_path
-        ]
-    );
+  await pool.query(
+    `
+        INSERT INTO organization_assets
+        (id, organization_id, name, type, file_path)
+        VALUES (?, ?, ?, ?, ?)
+        `,
+    [id, data.organization_id, data.name, data.type, data.file_path]
+  );
 
-    await redis.del(CACHE_ALL_ORGANIZATION_ASSETS);
-    await redis.del(`${CACHE_ALL_ORGANIZATION_ASSETS}:${data.organization_id}`);
+  // invalidate cache
+  await redis.del(CACHE_ALL_ORGANIZATION_ASSETS);
+  await redis.del(`${CACHE_ALL_ORGANIZATION_ASSETS}:${data.organization_id}`);
 
-    return await getOrganizationAssetById(id);
+  return await getOrganizationAssetById(id);
 };
 
 // ===============================
@@ -138,34 +123,44 @@ export const createOrganizationAsset = async (
 export const updateOrganizationAsset = async (
   id: string,
   data: Partial<IUpdateOrganizationAsset>
-): Promise<IOrganizationAsset | null> => {
-
+) => {
   const allowedFields = ['name', 'type', 'file_path'];
 
-  const fields = Object.keys(data).filter((key) =>
-    allowedFields.includes(key)
-  );
-  if (!fields.length) return getOrganizationAssetById(id);
+  const fields = Object.keys(data).filter((key) => allowedFields.includes(key));
 
-  const values = fields.map((field) => (data as any)[field]);
+  if (!fields.length) {
+    const [rows] = await pool.query<OrganizationAssetRow[]>(
+      `SELECT * FROM organization_assets WHERE id = ?`,
+      [id]
+    );
+
+    const row = rows[0];
+    return row ?? null;
+  }
+
+  const values = fields.map(
+    (field) => data[field as keyof IUpdateOrganizationAsset]
+  );
+
   const setClause = fields.map((field) => `${field} = ?`).join(', ');
+
   await pool.query(
-    `UPDATE organization_assets 
-     SET ${setClause}, updated_at = NOW() 
-     WHERE id = ?`,
+    `
+        UPDATE organization_assets 
+        SET ${setClause}, updated_at = NOW() 
+        WHERE id = ?
+        `,
     [...values, id]
   );
 
-  const [rows]: any = await pool.query(
+  const [rows] = await pool.query<OrganizationAssetOrgRow[]>(
     `SELECT organization_id FROM organization_assets WHERE id = ?`,
     [id]
   );
 
-  const organizationId = rows?.[0]?.organization_id;
+  const organizationId = rows[0]?.organization_id;
 
-  // ========================
-  // CLEAR CACHE
-  // ========================
+  // cache invalidation
   await redis.del(CACHE_ALL_ORGANIZATION_ASSETS);
 
   if (organizationId) {
@@ -173,26 +168,17 @@ export const updateOrganizationAsset = async (
   }
   return getOrganizationAssetById(id);
 };
-
 // ===============================
 // DELETE
 // ===============================
 export const deleteOrganizationAsset = async (id: string): Promise<void> => {
-  // ambil organization_id dulu SEBELUM delete
-  const [rows]: any = await pool.query(
+  const [rows] = await pool.query<OrganizationAssetOrgRow[]>(
     'SELECT organization_id FROM organization_assets WHERE id = ?',
     [id]
   );
-
   const organizationId = rows?.[0]?.organization_id;
-
-  // delete data
   await pool.query('DELETE FROM organization_assets WHERE id = ?', [id]);
-
-  // 🔥 clear cache global
   await redis.del(CACHE_ALL_ORGANIZATION_ASSETS);
-
-  // 🔥 clear cache per organization (INI YANG KURANG)
   if (organizationId) {
     await redis.del(`${CACHE_ALL_ORGANIZATION_ASSETS}:${organizationId}`);
   }

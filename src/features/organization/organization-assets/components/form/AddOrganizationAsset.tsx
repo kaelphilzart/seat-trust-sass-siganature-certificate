@@ -38,19 +38,18 @@ export default function AddOrganizationAssetForm({
     field: K,
     value: ICreateOrganizationAsset[K]
   ) => {
-    setForm(prev => ({ ...prev, [field]: value }));
+    setForm((prev) => ({ ...prev, [field]: value }));
   };
 
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-
       {/* NAME */}
       <div>
         <label className="mb-1 block text-sm font-medium">Name</label>
         <Input
           type="text"
           value={form.name ?? ''}
-          onChange={e => handleChange('name', e.target.value)}
+          onChange={(e) => handleChange('name', e.target.value)}
           placeholder="Nama Asset"
         />
       </div>
@@ -61,7 +60,7 @@ export default function AddOrganizationAssetForm({
         <select
           className="w-full border rounded px-2 py-2"
           value={form.type ?? ''}
-          onChange={e => handleChange('type', e.target.value as AssetType)}
+          onChange={(e) => handleChange('type', e.target.value as AssetType)}
         >
           <option value="">Pilih type</option>
           <option value="IMAGE">Image</option>
@@ -76,7 +75,7 @@ export default function AddOrganizationAssetForm({
         <Input
           type="file"
           accept="image/*,.ttf,.woff,.woff2"
-          onChange={e => {
+          onChange={(e) => {
             const file = e.target.files?.[0];
             if (!file) return;
 
@@ -94,11 +93,7 @@ export default function AddOrganizationAssetForm({
         />
 
         {/* nama file */}
-        {form.file && (
-          <p className="text-sm mt-1">
-            {form.file.name}
-          </p>
-        )}
+        {form.file && <p className="text-sm mt-1">{form.file.name}</p>}
       </div>
 
       {/* PREVIEW */}

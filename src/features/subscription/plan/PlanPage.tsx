@@ -6,9 +6,5 @@ import { Skeleton } from '@/components/ui/skeleton';
 export default function PlanPage() {
   const { section } = usePlan();
 
-  return (
-    <Suspense fallback={<Skeleton />}>
-      {section}
-    </Suspense>
-  );
+  return <Suspense fallback={<Skeleton />}>{section}</Suspense>;
 }

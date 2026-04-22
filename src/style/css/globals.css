@@ -9,7 +9,6 @@
 @import './override/reboot.css' layer(utilities);
 /* @import "tw-animate-css"; */
 
-
 @custom-variant dark (&:is(.dark *));
 
 html,
@@ -18,12 +17,11 @@ main {
 }
 
 @theme {
-  
   --shadow-lg: 0 1rem 3rem rgba(0, 0, 0, 0.175);
-  
+
   --shadow-sm: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
   --shadow-btn-shadow: rgba(0, 0, 0, 0.05) 0 9px 17.5px;
-  --shadow-boxShadow: 7px 7px 10px rgba(0,0,0,.03);
+  --shadow-boxShadow: 7px 7px 10px rgba(0, 0, 0, 0.03);
 
   --radius-sm: 4px;
   --radius-md: 7px;
@@ -80,7 +78,6 @@ main {
 }
 
 @layer base {
-
   *,
   ::after,
   ::before,
@@ -154,7 +151,7 @@ main {
   }
 
   input::placeholder {
-    @apply text-darklink dark:text-darklink
+    @apply text-darklink dark:text-darklink;
   }
 
   button {
@@ -165,10 +162,9 @@ main {
     @apply flex items-center gap-4 p-3;
   }
 
-  .sales-overview select{
+  .sales-overview select {
     @apply pr-9!;
   }
-
 }
 
 /*---break---*/
@@ -211,7 +207,6 @@ main {
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
-
 /*---break---*/
 
 @layer base {
@@ -223,12 +218,12 @@ main {
   }
 }
 
-input[type="time"]::-webkit-calendar-picker-indicator {
+input[type='time']::-webkit-calendar-picker-indicator {
   display: none;
   -webkit-appearance: none;
 }
 
 /* Hide in Firefox */
-input[type="time"] {
+input[type='time'] {
   -moz-appearance: textfield;
 }

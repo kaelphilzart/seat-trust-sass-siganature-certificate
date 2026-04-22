@@ -6,7 +6,13 @@ import { useGetAllFeatures } from '@/hooks/features';
 import { Input } from '@/components/ui/input';
 import { ComboboxField } from '@/components/ui/combobox-field';
 import Image from 'next/image';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select';
 
 interface AddElementTypeFormProps {
   formData?: ICreateElementType;
@@ -43,23 +49,17 @@ export default function AddElementTypeForm({
     field: K,
     value: ICreateElementType[K]
   ) => {
-    setForm(prev => ({ ...prev, [field]: value }));
+    setForm((prev) => ({ ...prev, [field]: value }));
   };
-
-  const selectedFeature = features.find(
-    (f) => f.feature_key === form.feature_key
-  );
-
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-
       {/* Name */}
       <div>
         <label className="mb-1 block text-sm font-medium">Name</label>
         <Input
           type="text"
           value={form.name ?? ''}
-          onChange={e => handleChange('name', e.target.value)}
+          onChange={(e) => handleChange('name', e.target.value)}
           placeholder="Nama Element Type"
         />
       </div>
@@ -70,7 +70,7 @@ export default function AddElementTypeForm({
         <Input
           type="text"
           value={form.code ?? ''}
-          onChange={e => handleChange('code', e.target.value)}
+          onChange={(e) => handleChange('code', e.target.value)}
           placeholder="Kode unik (optional)"
         />
       </div>
@@ -81,12 +81,9 @@ export default function AddElementTypeForm({
         <Input
           type="number"
           value={form.default_width ?? ''}
-          onChange={e => {
+          onChange={(e) => {
             const val = e.target.value;
-            handleChange(
-              'default_width',
-              val === '' ? undefined : Number(val)
-            );
+            handleChange('default_width', val === '' ? undefined : Number(val));
           }}
         />
       </div>
@@ -97,7 +94,7 @@ export default function AddElementTypeForm({
         <Input
           type="number"
           value={form.default_height ?? ''}
-          onChange={e => {
+          onChange={(e) => {
             const val = e.target.value;
             handleChange(
               'default_height',
@@ -109,11 +106,13 @@ export default function AddElementTypeForm({
 
       {/* Default Rotation */}
       <div>
-        <label className="mb-1 block text-sm font-medium">Default Rotation</label>
+        <label className="mb-1 block text-sm font-medium">
+          Default Rotation
+        </label>
         <Input
           type="number"
           value={form.default_rotation ?? ''}
-          onChange={e => {
+          onChange={(e) => {
             const val = e.target.value;
             handleChange(
               'default_rotation',
@@ -196,14 +195,12 @@ export default function AddElementTypeForm({
 
       {/* File Upload */}
       <div className="md:col-span-1">
-        <label className="mb-1 block text-sm font-medium">
-          Icon / File
-        </label>
+        <label className="mb-1 block text-sm font-medium">Icon / File</label>
 
         <Input
           type="file"
           accept="image/*"
-          onChange={e => {
+          onChange={(e) => {
             const file = e.target.files?.[0];
             if (file) {
               handleChange('file_path', file);
@@ -215,9 +212,7 @@ export default function AddElementTypeForm({
         />
 
         {form.file_path && (
-          <p className="text-sm mt-1">
-            {(form.file_path as File).name}
-          </p>
+          <p className="text-sm mt-1">{(form.file_path as File).name}</p>
         )}
       </div>
 

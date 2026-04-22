@@ -19,7 +19,6 @@ export async function GET(
         'Content-Disposition': `attachment; filename=certificate-${batchId}.jpg`,
       },
     });
-
   } catch (e: any) {
     console.error('Download Certificate ERROR:', e);
 

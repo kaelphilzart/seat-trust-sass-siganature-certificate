@@ -9,8 +9,8 @@ cloudinary.config({
 
 export const uploadToCloudinaryTemplate = async (file: string) => {
   const result = await cloudinary.uploader.upload(file, {
-    folder: "seal_trust/template",
-    resource_type: "image",
+    folder: 'seal_trust/template',
+    resource_type: 'image',
     overwrite: true,
     unique_filename: false,
     use_filename: false,
@@ -24,8 +24,8 @@ export const uploadToCloudinaryTemplate = async (file: string) => {
 
 export const uploadToCloudinaryElement = async (file: string) => {
   const result = await cloudinary.uploader.upload(file, {
-    folder: "seal_trust/element-type",
-    resource_type: "image",
+    folder: 'seal_trust/element-type',
+    resource_type: 'image',
     overwrite: true,
     unique_filename: false,
     use_filename: false,
@@ -39,8 +39,8 @@ export const uploadToCloudinaryElement = async (file: string) => {
 
 export const uploadToCloudinaryOrganizationAsset = async (file: string) => {
   const result = await cloudinary.uploader.upload(file, {
-    folder: "seal_trust/organization-asset",
-    resource_type: "auto",
+    folder: 'seal_trust/organization-asset',
+    resource_type: 'auto',
     overwrite: true,
     unique_filename: false,
     use_filename: false,

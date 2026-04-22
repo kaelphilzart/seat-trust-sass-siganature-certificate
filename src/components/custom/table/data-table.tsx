@@ -14,7 +14,14 @@ import {
   ColumnFiltersState,
   VisibilityState,
 } from '@tanstack/react-table';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { InputSearch } from '@/components/ui/input-search';
 import PaginationTable from '@/components/custom/pagination-table';
 import Link from 'next/link';
@@ -66,17 +73,22 @@ export function DataTable<TData, TValue>({
   });
 
   const TableData = isFilterRow
-    ? table.getRowModel().rows.filter((rowItems: any) =>
-        isFilterRowBasedOnValue === isAllRowKey
-          ? rowItems
-          : rowItems.original?.status === isFilterRowBasedOnValue
-      )
+    ? table
+        .getRowModel()
+        .rows.filter((rowItems: any) =>
+          isFilterRowBasedOnValue === isAllRowKey
+            ? rowItems
+            : rowItems.original?.status === isFilterRowBasedOnValue
+        )
     : table.getRowModel().rows;
 
   // ===== PORTAL SEARCH =====
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
-  const portalTarget = typeof window !== 'undefined' ? document.getElementById('search-table') : null;
+  const portalTarget =
+    typeof window !== 'undefined'
+      ? document.getElementById('search-table')
+      : null;
 
   return (
     <div className="w-full overflow-x-auto bg-white dark:bg-dark shadow-sm rounded-md">
@@ -85,8 +97,12 @@ export function DataTable<TData, TValue>({
         ? createPortal(
             <InputSearch
               placeholder={`Search ${filterField}`}
-              value={(table.getColumn(filterField)?.getFilterValue() as string) ?? ''}
-              onChange={(e) => table.getColumn(filterField)?.setFilterValue(e.target.value)}
+              value={
+                (table.getColumn(filterField)?.getFilterValue() as string) ?? ''
+              }
+              onChange={(e) =>
+                table.getColumn(filterField)?.setFilterValue(e.target.value)
+              }
             />,
             portalTarget
           )
@@ -99,10 +115,17 @@ export function DataTable<TData, TValue>({
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id}  style={{ width: header.getSize() }} className="last:w-0 text-left text-gray-700 dark:text-gray-200">
+                  <TableHead
+                    key={header.id}
+                    style={{ width: header.getSize() }}
+                    className="last:w-0 text-left text-gray-700 dark:text-gray-200"
+                  >
                     {header.isPlaceholder
                       ? null
-                      : flexRender(header.column.columnDef.header, header.getContext())}
+                      : flexRender(
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
                   </TableHead>
                 ))}
               </TableRow>
@@ -124,14 +147,20 @@ export function DataTable<TData, TValue>({
                       style={{ width: cell.column.getSize() }}
                       className="text-gray-800 dark:text-gray-200"
                     >
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext()
+                      )}
                     </TableCell>
                   ))}
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center text-lg font-semibold text-gray-500 dark:text-gray-400">
+                <TableCell
+                  colSpan={columns.length}
+                  className="h-24 text-center text-lg font-semibold text-gray-500 dark:text-gray-400"
+                >
                   No results.
                 </TableCell>
               </TableRow>
@@ -144,7 +173,10 @@ export function DataTable<TData, TValue>({
       {isRemovePagination ? (
         viewAllHref ? (
           <div className="flex justify-end border-t border-gray-200 dark:border-gray-700 px-4 py-3">
-            <Link href={viewAllHref} className="text-sm font-medium text-black dark:text-white hover:underline">
+            <Link
+              href={viewAllHref}
+              className="text-sm font-medium text-black dark:text-white hover:underline"
+            >
               {viewAllLabel ?? 'View all'}
             </Link>
           </div>

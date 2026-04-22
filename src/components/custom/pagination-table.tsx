@@ -22,7 +22,9 @@ export default function PaginationTable({ table, data }: any) {
       {/* Info Entries */}
       <div className="rounded-lg bg-white dark:bg-dark px-3 py-1.75 text-xs font-medium text-gray-500 dark:text-gray-300 shadow-sm">
         Showing&nbsp;
-        <span className="text-black dark:text-white">{table.getRowModel().rows.length}</span>
+        <span className="text-black dark:text-white">
+          {table.getRowModel().rows.length}
+        </span>
         &nbsp;of&nbsp;
         <span className="text-black dark:text-white">{data.length}</span>
         &nbsp;Entries
@@ -61,7 +63,9 @@ export default function PaginationTable({ table, data }: any) {
             {/* Ellipsis */}
             {end < totalPages && (
               <PaginationItem>
-                <span className="px-2 text-gray-400 dark:text-gray-500">...</span>
+                <span className="px-2 text-gray-400 dark:text-gray-500">
+                  ...
+                </span>
               </PaginationItem>
             )}
 

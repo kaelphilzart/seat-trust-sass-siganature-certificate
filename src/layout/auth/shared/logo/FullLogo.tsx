@@ -1,13 +1,13 @@
-"use client";
+'use client';
 
-import Image from "next/image";
-import Link from "next/link";
+import Image from 'next/image';
+import Link from 'next/link';
 
 const FullLogo = () => {
   const LOGO = '/images/logos/seal-trust-logo.png';
 
   return (
-    <Link href={"/"}>
+    <Link href={'/'}>
       {/* Dark Logo */}
       <Image
         src={LOGO}

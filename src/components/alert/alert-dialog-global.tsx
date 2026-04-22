@@ -46,17 +46,17 @@ export const AlertProvider = ({ children }: { children: ReactNode }) => {
         type === 'success'
           ? 'Berhasil'
           : type === 'error'
-          ? 'Gagal'
-          : type === 'info'
-          ? 'Informasi'
-          : 'Konfirmasi',
+            ? 'Gagal'
+            : type === 'info'
+              ? 'Informasi'
+              : 'Konfirmasi',
       message,
       onConfirm,
       loading: false,
     });
   };
 
-  const close = () => setAlert(prev => ({ ...prev, open: false }));
+  const close = () => setAlert((prev) => ({ ...prev, open: false }));
 
   const showLoading = () => setGlobalLoading(true);
   const hideLoading = () => setGlobalLoading(false);
@@ -67,7 +67,7 @@ export const AlertProvider = ({ children }: { children: ReactNode }) => {
   ) => {
     return new Promise<void>((resolve) => {
       const onConfirm = async () => {
-        setAlert(prev => ({ ...prev, loading: true }));
+        setAlert((prev) => ({ ...prev, loading: true }));
         setGlobalLoading(true); // 🔥 GLOBAL LOADING ON
 
         try {

@@ -1,12 +1,12 @@
-'use client'
-import { useTheme } from "next-themes";
+'use client';
+import { useTheme } from 'next-themes';
 
 const ThemeToggler = () => {
   const { theme, setTheme } = useTheme();
   return (
     <button
       aria-label="theme toggler"
-      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+      onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
       className="text-body-color flex h-8 w-8 items-center justify-center duration-300 dark:text-white"
     >
       <span>

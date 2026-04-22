@@ -1,37 +1,47 @@
 import { useMemo } from 'react';
 import useSWR, { mutate } from 'swr';
 import { endpoints, request } from '@/utils/helper-server';
-import { ITemplatePositionBinding, ICreateTemplatePositionBinding } from '@/types/template-position-binding';
+import {
+  ITemplatePositionBinding,
+  ICreateTemplatePositionBinding,
+} from '@/types/template-position-binding';
 import { ApiResponse } from '@/types/request';
 
 // base URL API
 const URL_TEMPLATE_POSITION_BINDING = endpoints.templatePositionBinding;
 
-
 // SWR options
 const options = {
-    revalidateIfStale: true,
-    revalidateOnFocus: false,
-    revalidateOnReconnect: false,
+  revalidateIfStale: true,
+  revalidateOnFocus: false,
+  revalidateOnReconnect: false,
 };
 
 // ===========================
 // GET ALL
 // ===========================
 export function useGetAllTemplatePositionBindings(batchId?: string) {
-    const { data, error, isLoading, isValidating } = useSWR<{ data: ITemplatePositionBinding[] }>(
-        batchId ? `${URL_TEMPLATE_POSITION_BINDING}/${batchId}` : URL_TEMPLATE_POSITION_BINDING,
-        (url) => request<{ data: ITemplatePositionBinding[] }>(url),
-        options
-    );
-    const memoized = useMemo(() => ({
-        templatePositionBindings: (data?.data || []) as ITemplatePositionBinding[],
-        templatePositionBindingsLoading: isLoading,
-        templatePositionBindingsIsValidating: isValidating,
-        templatePositionBindingsError: error,
-    }), [data, isLoading, isValidating, error]);
+  const { data, error, isLoading, isValidating } = useSWR<{
+    data: ITemplatePositionBinding[];
+  }>(
+    batchId
+      ? `${URL_TEMPLATE_POSITION_BINDING}/${batchId}`
+      : URL_TEMPLATE_POSITION_BINDING,
+    (url) => request<{ data: ITemplatePositionBinding[] }>(url),
+    options
+  );
+  const memoized = useMemo(
+    () => ({
+      templatePositionBindings: (data?.data ||
+        []) as ITemplatePositionBinding[],
+      templatePositionBindingsLoading: isLoading,
+      templatePositionBindingsIsValidating: isValidating,
+      templatePositionBindingsError: error,
+    }),
+    [data, isLoading, isValidating, error]
+  );
 
-    return memoized;
+  return memoized;
 }
 
 // ===========================
@@ -56,49 +66,47 @@ export function useGetAllTemplatePositionBindings(batchId?: string) {
 // CREATE BULK
 // ===========================
 export async function syncTemplatePositionBindings(
-    data: ICreateTemplatePositionBinding[]
+  data: ICreateTemplatePositionBinding[]
 ) {
-    try {
-        const res = await request<ApiResponse<any>>(URL_TEMPLATE_POSITION_BINDING, {
-            method: 'POST', // 🔥 FULL SYNC (SAMA KAYAK TEMPLATE POSITION)
-            body: data,
-        });
+  try {
+    const res = await request<ApiResponse<unknown>>(
+      URL_TEMPLATE_POSITION_BINDING,
+      {
+        method: 'POST', // 🔥 FULL SYNC (SAMA KAYAK TEMPLATE POSITION)
+        body: data,
+      }
+    );
 
-        await mutate(URL_TEMPLATE_POSITION_BINDING);
+    await mutate(URL_TEMPLATE_POSITION_BINDING);
 
-        return {
-            success: true,
-            message: res.message,
-        };
-    } catch (error: any) {
-        return {
-            success: false,
-            message: error?.message || 'Error sync Template Position Binding',
-        };
-    }
+    return {
+      success: true,
+      message: res.message,
+    };
+  } catch (error: unknown) {
+    throw error;
+  }
 }
 // ===========================
 // DELETE BULK
 // ===========================
-export async function deleteTemplatePositionBindingsBulk(
-    ids: string[]
-) {
-    try {
-        const res = await request<ApiResponse<any>>(URL_TEMPLATE_POSITION_BINDING, {
-            method: 'DELETE',
-            body: { ids },
-        });
+export async function deleteTemplatePositionBindingsBulk(ids: string[]) {
+  try {
+    const res = await request<ApiResponse<unknown>>(
+      URL_TEMPLATE_POSITION_BINDING,
+      {
+        method: 'DELETE',
+        body: { ids },
+      }
+    );
 
-        await mutate(URL_TEMPLATE_POSITION_BINDING);
+    await mutate(URL_TEMPLATE_POSITION_BINDING);
 
-        return {
-            success: true,
-            message: res.message,
-        };
-    } catch (error: any) {
-        return {
-            success: false,
-            message: error?.message || 'Error delete Template Position Binding',
-        };
-    }
+    return {
+      success: true,
+      message: res.message,
+    };
+  } catch (error: unknown) {
+    throw error;
+  }
 }

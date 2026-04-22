@@ -1,5 +1,7 @@
 /* tailwind-sidebar package override styles */
-[data-slot='collapsible'] [data-slot='sidebar-menu-item'] [data-slot='sidebar-menu-button']:hover {
+[data-slot='collapsible']
+  [data-slot='sidebar-menu-item']
+  [data-slot='sidebar-menu-button']:hover {
   background-color: transparent !important;
 }
 
@@ -7,22 +9,22 @@
   font-size: x-small;
 }
 
-[data-slot='collapsible'] [data-state="open"] button:hover,
+[data-slot='collapsible'] [data-state='open'] button:hover,
 [data-slot='collapsible'] button:hover {
   background-color: var(--color-lightprimary) !important;
   color: var(--color-primary) !important;
 }
 
-[data-slot='collapsible'] [data-state="open"] button {
+[data-slot='collapsible'] [data-state='open'] button {
   background-color: var(--color-lightprimary) !important;
   color: var(--color-primary) !important;
 }
 
-[data-slot="sidebar"] [data-state="open"] button {
+[data-slot='sidebar'] [data-state='open'] button {
   background-color: var(--color-lightprimary) !important;
   color: var(--color-primary) !important;
 }
 
-[data-slot="sidebar-menu-button"] .side_sub:hover {
+[data-slot='sidebar-menu-button'] .side_sub:hover {
   color: var(--color-primary) !important;
 }

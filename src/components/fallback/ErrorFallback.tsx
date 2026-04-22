@@ -8,7 +8,10 @@ interface ErrorFallbackProps {
   iconSize?: number;
 }
 
-export default function ErrorFallback({ message = 'Terjadi kesalahan.', iconSize = 80 }: ErrorFallbackProps) {
+export default function ErrorFallback({
+  message = 'Terjadi kesalahan.',
+  iconSize = 80,
+}: ErrorFallbackProps) {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen gap-4 text-center px-4">
       <IconAlertCircle

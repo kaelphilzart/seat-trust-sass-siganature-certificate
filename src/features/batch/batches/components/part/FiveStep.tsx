@@ -14,31 +14,61 @@ import { useAlert } from '@/components/alert/alert-dialog-global';
 import { createRepresentative } from '@/hooks/representative';
 import AddRepresentativeForm from '@/features/subscription/representative/components/forms/AddRepresentative';
 
-export default function FiveStep({ onFinish, onBack, batchId }: any) {
+import { IRepresentative } from '@/types/representative';
+import { IBatchRepresentative } from '@/types/batch-representative';
+
+type Step5Payload = {
+  ids: string[];
+  isDirty: boolean;
+};
+
+type Props = {
+  onBack: () => void;
+  onFinish: (data: Step5Payload) => void;
+  batchId: string;
+};
+
+type RepresentativeItem =
+  | IRepresentative
+  | {
+      id: '__add_representative__';
+      name: string;
+      title: string;
+    };
+
+export default function FiveStep({ onFinish, onBack, batchId }: Props) {
   const alert = useAlert();
   const { data: session } = useSession();
 
   const organizationId = session?.user?.organization_id;
 
   //============================================================
-  const [addFormData, setAddFormData] = useState<ICreateRepresentative | null>(null);
+  const [addFormData, setAddFormData] = useState<ICreateRepresentative | null>(
+    null
+  );
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
-  const { representatives, representativesLoading } = useGetAllRepresentatives(organizationId);
-  const { batchRepresentatives, } = useGetAllBatchRepresentatives(batchId);
+  const { representatives, representativesLoading } =
+    useGetAllRepresentatives();
+  const { batchRepresentatives } = useGetAllBatchRepresentatives(batchId);
 
   // =========================
   // STATE
   // =========================
-  const [selectedRepresentatives, setSelectedRepresentatives] = useState<string[]>([]);
-  const itemsWithAction = [
-    ...(representatives || []),
-    {
-      id: '__add_representative__',
-      name: '+ Add Representative',
-      title: '',
-    },
-  ];
+  const [selectedRepresentatives, setSelectedRepresentatives] = useState<
+    string[]
+  >([]);
+  const itemsWithAction = useMemo<RepresentativeItem[]>(
+    () => [
+      ...(representatives || []),
+      {
+        id: '__add_representative__',
+        name: '+ Add Representative',
+        title: '',
+      },
+    ],
+    [representatives]
+  );
   // =========================
   // INIT FROM SERVER (LIKE STEP 4)
   // =========================
@@ -46,8 +76,8 @@ export default function FiveStep({ onFinish, onBack, batchId }: any) {
     if (!batchRepresentatives) return;
 
     const ids = batchRepresentatives
-      .map((item: any) => item.representative?.id)
-      .filter(Boolean);
+      .map((item: IBatchRepresentative) => item.representative?.id)
+      .filter((id): id is string => Boolean(id));
 
     setSelectedRepresentatives(ids);
   }, [batchRepresentatives]);
@@ -56,13 +86,19 @@ export default function FiveStep({ onFinish, onBack, batchId }: any) {
   const handleAddSubmit = async () => {
     if (!addFormData?.name || !addFormData?.title)
       return alert.error('Name dan Title wajib diisi!');
-    await alert.confirmAsync('Yakin ingin menambahkan representative ini?', async () => {
-      const payload: ICreateRepresentative = { ...addFormData, organization_id: organizationId! };
-      const res = await createRepresentative(payload);
-      return res
-        ? { success: true }
-        : { success: false, message: 'Tidak ada response dari server.' };
-    });
+    await alert.confirmAsync(
+      'Yakin ingin menambahkan representative ini?',
+      async () => {
+        const payload: ICreateRepresentative = {
+          ...addFormData,
+          organization_id: organizationId!,
+        };
+        const res = await createRepresentative(payload);
+        return res
+          ? { success: true }
+          : { success: false, message: 'Tidak ada response dari server.' };
+      }
+    );
     // kalau sukses, reset form
     setAddFormData(null);
     setIsAddModalOpen(false);
@@ -79,9 +115,7 @@ export default function FiveStep({ onFinish, onBack, batchId }: any) {
   };
 
   const handleRemove = (id: string) => {
-    setSelectedRepresentatives((prev) =>
-      prev.filter((item) => item !== id)
-    );
+    setSelectedRepresentatives((prev) => prev.filter((item) => item !== id));
   };
 
   // =========================
@@ -91,8 +125,8 @@ export default function FiveStep({ onFinish, onBack, batchId }: any) {
     if (!representatives) return [];
 
     return selectedRepresentatives
-      .map((id) => representatives.find((r: any) => r.id === id))
-      .filter(Boolean);
+      .map((id) => representatives.find((r) => r.id === id))
+      .filter((rep): rep is IRepresentative => Boolean(rep));
   }, [selectedRepresentatives, representatives]);
 
   const isValid = selectedRepresentatives.length > 0;
@@ -102,8 +136,8 @@ export default function FiveStep({ onFinish, onBack, batchId }: any) {
   // =========================
   const dbIds = useMemo(() => {
     return (batchRepresentatives || [])
-      .map((i: any) => i.representative?.id)
-      .filter(Boolean)
+      .map((i: IBatchRepresentative) => i.representative?.id)
+      .filter((id): id is string => Boolean(id))
       .sort();
   }, [batchRepresentatives]);
 
@@ -124,7 +158,6 @@ export default function FiveStep({ onFinish, onBack, batchId }: any) {
   // =========================
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
-
       {/* HEADER */}
       <div className="flex items-center justify-between mb-1">
         <Button variant="ghost" onClick={onBack}>
@@ -153,17 +186,17 @@ export default function FiveStep({ onFinish, onBack, batchId }: any) {
         </div>
 
         <div className="text-xs text-gray-400 mt-1">
-          Pilih representative yang akan digunakan untuk kebutuhan seperti QR Code atau legalitas pada sertifikat.
+          Pilih representative yang akan digunakan untuk kebutuhan seperti QR
+          Code atau legalitas pada sertifikat.
         </div>
       </div>
 
       {/* CONTENT */}
       <div className="bg-gray-50 p-6 rounded shadow space-y-4 text-center">
-
-        <ComboboxField
+        <ComboboxField<RepresentativeItem>
           items={itemsWithAction}
-          getValue={(item: any) => item.id}
-          getLabel={(item: any) =>
+          getValue={(item) => item.id}
+          getLabel={(item) =>
             item.id === '__add_representative__'
               ? item.name
               : `${item.name} - ${item.title}`
@@ -189,16 +222,14 @@ export default function FiveStep({ onFinish, onBack, batchId }: any) {
             </div>
           )}
 
-          {selectedData.map((rep: any) => (
+          {selectedData.map((rep) => (
             <div
               key={rep.id}
               className="flex items-center justify-between bg-white border rounded px-3 py-2"
             >
               <div className="flex flex-col text-left">
                 <span className="font-medium">Name : {rep.name}</span>
-                <span className="text-xs text-gray-400">
-                  {rep.title}
-                </span>
+                <span className="text-xs text-gray-400">{rep.title}</span>
               </div>
 
               <Button
@@ -212,10 +243,22 @@ export default function FiveStep({ onFinish, onBack, batchId }: any) {
           ))}
         </div>
       </div>
-      <Modal open={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} onSubmit={handleAddSubmit} title="Tambah Representative">
-        <AddRepresentativeForm formData={addFormData ?? undefined} onChange={data =>
-          setAddFormData(prev => JSON.stringify(prev) !== JSON.stringify(data) ? (data as ICreateRepresentative) : prev
-          )} />
+      <Modal
+        open={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onSubmit={handleAddSubmit}
+        title="Tambah Representative"
+      >
+        <AddRepresentativeForm
+          formData={addFormData ?? undefined}
+          onChange={(data) =>
+            setAddFormData((prev) =>
+              JSON.stringify(prev) !== JSON.stringify(data)
+                ? (data as ICreateRepresentative)
+                : prev
+            )
+          }
+        />
       </Modal>
     </div>
   );

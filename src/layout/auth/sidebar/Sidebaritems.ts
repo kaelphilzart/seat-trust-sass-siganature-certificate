@@ -1,5 +1,5 @@
-import { uniqueId } from 'lodash'
-import { paths } from '@/routes/paths'
+import { uniqueId } from 'lodash';
+import { paths } from '@/routes/paths';
 
 /* ================= ROLE ================= */
 export type Role = 'ADMIN' | 'REPRESENTATIVE' | 'SUPERADMIN';
@@ -18,18 +18,18 @@ export function normalizeRole(role?: string): Role | undefined {
 
 /* ================= TYPES ================= */
 export interface ChildItem {
-  id?: number | string
-  name?: string
-  icon?: any
-  children?: ChildItem[]
-  url?: any
-  disabled?: boolean
-  roles?: Role[]
+  id?: number | string;
+  name?: string;
+  icon?: string;
+  children?: ChildItem[];
+  url?: string;
+  disabled?: boolean;
+  roles?: Role[];
 }
 
 export interface MenuItem {
-  heading?: string
-  children?: ChildItem[]
+  heading?: string;
+  children?: ChildItem[];
 }
 
 /* ================= FILTER ROLE ================= */
@@ -64,15 +64,15 @@ const SidebarContent: MenuItem[] = [
     heading: 'Dashboards',
     children: [
       {
-        name: "Dashboard",
-        icon: "solar:widget-add-line-duotone",
+        name: 'Dashboard',
+        icon: 'solar:widget-add-line-duotone',
         id: uniqueId(),
-        url: "/",
+        url: '/',
         roles: ['ADMIN', 'REPRESENTATIVE', 'SUPERADMIN'],
       },
       {
-        name: "Users",
-        icon: "solar:users-group-two-rounded-linear",
+        name: 'Users',
+        icon: 'solar:users-group-two-rounded-linear',
         id: uniqueId(),
         url: `${paths.user}`,
         roles: ['SUPERADMIN'],
@@ -84,25 +84,25 @@ const SidebarContent: MenuItem[] = [
         roles: ['ADMIN', 'SUPERADMIN'],
         children: [
           {
-            name: "Organization",
+            name: 'Organization',
             id: uniqueId(),
             url: `${paths.organization.base}`,
             roles: ['ADMIN', 'SUPERADMIN'],
           },
           {
-            name: "Organization User",
+            name: 'Organization User',
             id: uniqueId(),
             url: `${paths.organization.user}`,
             roles: ['SUPERADMIN'],
           },
           {
-            name: "Asset",
+            name: 'Asset',
             id: uniqueId(),
             url: `${paths.organization.asset}`,
             roles: ['ADMIN', 'SUPERADMIN'],
           },
-                    {
-            name: "Representative",
+          {
+            name: 'Representative',
             id: uniqueId(),
             url: `${paths.representative}`,
             roles: ['ADMIN', 'SUPERADMIN'],
@@ -110,73 +110,73 @@ const SidebarContent: MenuItem[] = [
         ],
       },
       {
-        name: "Subscription",
+        name: 'Subscription',
         id: uniqueId(),
-        icon: "solar:cart-3-line-duotone",
+        icon: 'solar:cart-3-line-duotone',
         roles: ['SUPERADMIN'],
         children: [
           {
             id: uniqueId(),
-            name: "Plan",
+            name: 'Plan',
             url: `${paths.subscription.plan.root}`,
             roles: ['SUPERADMIN'],
           },
           {
             id: uniqueId(),
-            name: "Feature",
+            name: 'Feature',
             url: `${paths.subscription.feature}`,
             roles: ['SUPERADMIN'],
           },
           {
             id: uniqueId(),
-            name: "Subscriptions",
+            name: 'Subscriptions',
             url: `${paths.subscription.base}`,
             roles: ['SUPERADMIN'],
           },
         ],
       },
       {
-        name: "Template",
+        name: 'Template',
         id: uniqueId(),
-        icon: "solar:widget-add-line-duotone",
+        icon: 'solar:widget-add-line-duotone',
         roles: ['ADMIN', 'SUPERADMIN'],
         children: [
           {
             id: uniqueId(),
-            name: "Element Type",
+            name: 'Element Type',
             url: `${paths.elementType.base}`,
             roles: ['SUPERADMIN'],
           },
           {
             id: uniqueId(),
-            name: "Templates",
+            name: 'Templates',
             url: `${paths.template.base}`,
             roles: ['ADMIN', 'SUPERADMIN'],
           },
         ],
       },
       {
-        name: "Batch",
+        name: 'Batch',
         id: uniqueId(),
-        icon: "solar:shield-user-outline",
+        icon: 'solar:shield-user-outline',
         roles: ['ADMIN', 'SUPERADMIN'],
         children: [
           {
             id: uniqueId(),
-            name: "Participant",
-            url: "#!",
+            name: 'Participant',
+            url: '#!',
             roles: ['ADMIN', 'SUPERADMIN'],
           },
           {
             id: uniqueId(),
-            name: "Batches",
+            name: 'Batches',
             url: `${paths.batch.base}`,
-            roles: ['ADMIN','SUPERADMIN'],
+            roles: ['ADMIN', 'SUPERADMIN'],
           },
         ],
       },
     ],
   },
-]
+];
 
-export default SidebarContent
+export default SidebarContent;

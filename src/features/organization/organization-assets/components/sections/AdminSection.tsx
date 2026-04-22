@@ -1,6 +1,5 @@
 'use client';
-import { useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useCallback, useMemo, useState } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/custom/table/data-table';
@@ -15,28 +14,42 @@ import { useSession } from 'next-auth/react';
 import AddOrganizationAssetForm from '../form/AddOrganizationAsset';
 import EditOrganizationAssetForm from '../form/EditOrganizationAsset';
 
-import { useGetAllOrganizationAssets, createOrganizationAsset, editOrganizationAsset, deleteOrganizationAsset } from '@/hooks/organization-asset';
-import { ICreateOrganizationAsset, IOrganizationAsset, IUpdateOrganizationAsset } from '@/types/organization';
-import { encodeId } from '@/utils/encode';
+import {
+  useGetAllOrganizationAssets,
+  createOrganizationAsset,
+  editOrganizationAsset,
+  deleteOrganizationAsset,
+} from '@/hooks/organization-asset';
+import {
+  ICreateOrganizationAsset,
+  IOrganizationAsset,
+  IUpdateOrganizationAsset,
+} from '@/types/organization';
 import { Badge } from '@/components/ui/badge';
 
 export default function AdminSection() {
-  const router = useRouter();
   const alert = useAlert();
 
   const { data: session } = useSession();
 
   const organizationId = session?.user?.organization_id;
-  const { OrganizationAssets, OrganizationAssetsError, OrganizationAssetsLoading } = useGetAllOrganizationAssets(organizationId);
+  const {
+    OrganizationAssets,
+    OrganizationAssetsError,
+    OrganizationAssetsLoading,
+  } = useGetAllOrganizationAssets(organizationId);
 
   const [search, setSearch] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [addFormData, setAddFormData] = useState<ICreateOrganizationAsset | null>(null);
+  const [addFormData, setAddFormData] =
+    useState<ICreateOrganizationAsset | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editFormData, setEditFormData] = useState<IUpdateOrganizationAsset | null>(null);
-  const [initialData, setInitialData] = useState<IUpdateOrganizationAsset | null>(null);
+  const [editFormData, setEditFormData] =
+    useState<IUpdateOrganizationAsset | null>(null);
+  const [initialData, setInitialData] =
+    useState<IUpdateOrganizationAsset | null>(null);
 
-  const getChangedFields = <T extends Record<string, any>>(newData: T, oldData: T) => {
+  const getChangedFields = <T extends object>(newData: T, oldData: T) => {
     const changed: Partial<T> = {};
 
     for (const key in newData) {
@@ -58,17 +71,22 @@ export default function AdminSection() {
     return changed;
   };
 
-  const cleanPayload = (obj: Record<string, any>) =>
+  const cleanPayload = (obj: Record<string, unknown>) =>
     Object.fromEntries(
-      Object.entries(obj).filter(([_, v]) => v !== undefined && v !== null && v !== '')
+      Object.entries(obj).filter(
+        ([, v]) => v !== undefined && v !== null && v !== ''
+      )
     );
 
   //=====================HANDLE=========================//
-  const handleDelete = async (id: string, name: string) => {
-    await alert.confirmAsync(`Yakin ingin menghapus "${name}"?`, async () => {
-      return await deleteOrganizationAsset(id);
-    });
-  };
+  const handleDelete = useCallback(
+    async (id: string, name: string) => {
+      await alert.confirmAsync(`Yakin ingin menghapus "${name}"?`, async () => {
+        return await deleteOrganizationAsset(id);
+      });
+    },
+    [alert]
+  );
 
   const handleAddSubmit = async () => {
     if (!addFormData?.name || !addFormData?.file)
@@ -102,7 +120,8 @@ export default function AdminSection() {
 
     await alert.confirmAsync('Yakin ingin menyimpan perubahan?', async () => {
       const changedOnly = getChangedFields(editFormData, initialData);
-      const payload: Partial<IUpdateOrganizationAsset> = cleanPayload(changedOnly);
+      const payload: Partial<IUpdateOrganizationAsset> =
+        cleanPayload(changedOnly);
 
       if (Object.keys(payload).length === 0) {
         alert.info('Tidak ada perubahan data.');
@@ -118,7 +137,7 @@ export default function AdminSection() {
     setIsEditModalOpen(false);
   };
 
-  const handleOpenEdit = (element: IOrganizationAsset) => {
+  const handleOpenEdit = useCallback((element: IOrganizationAsset) => {
     const mapped: IUpdateOrganizationAsset = {
       id: element.id,
       name: element.name,
@@ -129,7 +148,7 @@ export default function AdminSection() {
     setEditFormData(mapped);
     setInitialData(mapped);
     setIsEditModalOpen(true);
-  };
+  }, []);
 
   //=====================================================================
   const tableData = useMemo(() => {
@@ -139,59 +158,62 @@ export default function AdminSection() {
     return data;
   }, [OrganizationAssets, search]);
 
-  const columns = useMemo<ColumnDef<IOrganizationAsset>[]>(() => [
-    { header: 'No', cell: ({ row }) => row.index + 1, size: 50 },
-    { header: 'Name', accessorKey: 'name', size: 250 },
-    { header: 'Tipe', accessorKey: 'type', size: 200 },
-    {
-      header: 'File',
-      accessorKey: 'file_path',
-      size: 150,
-      cell: ({ row }) => {
-        const url = row.original.file_path;
-        return url ? (
-          <Image
-            src={url}
-            alt={row.original.name ?? ''}
-            width={8}
-            height={8}
-            className="h-8 w-8 rounded object-cover border"
-          />
-        ) : (
-          <Badge variant="destructive">Tidak Ada</Badge>
-        );
-      }
-    },
-    {
-      header: 'Aksi',
-      id: 'actions',
-      size: 120,
-      cell: ({ row }) => (
-        <div className="flex gap-2">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={e => {
-              e.stopPropagation();
-              handleOpenEdit(row.original);
-            }}
-          >
-            <IconPencil className="h-4 w-4" />
-          </Button>
-          <Button
-            size="sm"
-            variant="destructive"
-            onClick={e => {
-              e.stopPropagation();
-              handleDelete(row.original.id!, row.original.name!);
-            }}
-          >
-            <IconTrash className="h-4 w-4" />
-          </Button>
-        </div>
-      )
-    },
-  ], []);
+  const columns = useMemo<ColumnDef<IOrganizationAsset>[]>(
+    () => [
+      { header: 'No', cell: ({ row }) => row.index + 1, size: 50 },
+      { header: 'Name', accessorKey: 'name', size: 250 },
+      { header: 'Tipe', accessorKey: 'type', size: 200 },
+      {
+        header: 'File',
+        accessorKey: 'file_path',
+        size: 150,
+        cell: ({ row }) => {
+          const url = row.original.file_path;
+          return url ? (
+            <Image
+              src={url}
+              alt={row.original.name ?? ''}
+              width={8}
+              height={8}
+              className="h-8 w-8 rounded object-cover border"
+            />
+          ) : (
+            <Badge variant="destructive">Tidak Ada</Badge>
+          );
+        },
+      },
+      {
+        header: 'Aksi',
+        id: 'actions',
+        size: 120,
+        cell: ({ row }) => (
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleOpenEdit(row.original);
+              }}
+            >
+              <IconPencil className="h-4 w-4" />
+            </Button>
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDelete(row.original.id!, row.original.name!);
+              }}
+            >
+              <IconTrash className="h-4 w-4" />
+            </Button>
+          </div>
+        ),
+      },
+    ],
+    [handleDelete, handleOpenEdit]
+  );
 
   if (OrganizationAssetsLoading) return <Loader />;
   if (OrganizationAssetsError) return <ErrorFallback />;
@@ -202,10 +224,18 @@ export default function AdminSection() {
 
       <div className="mb-4 flex items-center justify-between gap-3">
         <div className="w-full max-w-[320px]">
-          <InputSearch placeholder="Search by name..." value={search} onChange={e => setSearch(e.target.value)} />
+          <InputSearch
+            placeholder="Search by name..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
         </div>
         <div className="flex items-center gap-2">
-          <Button size="sm" variant="secondary" onClick={() => setIsAddModalOpen(true)}>
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => setIsAddModalOpen(true)}
+          >
             <IconPlus className="h-4 w-4" /> Tambah Aset
           </Button>
         </div>
@@ -218,16 +248,33 @@ export default function AdminSection() {
         isRemovePagination={false}
       />
 
-      <Modal open={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} onSubmit={handleAddSubmit} title="Tambah Aset">
-        <AddOrganizationAssetForm formData={addFormData ?? undefined} onChange={data =>
-          setAddFormData(prev => JSON.stringify(prev) !== JSON.stringify(data) ? (data as ICreateOrganizationAsset) : prev
-          )} />
+      <Modal
+        open={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onSubmit={handleAddSubmit}
+        title="Tambah Aset"
+      >
+        <AddOrganizationAssetForm
+          formData={addFormData ?? undefined}
+          onChange={(data) =>
+            setAddFormData((prev) =>
+              JSON.stringify(prev) !== JSON.stringify(data)
+                ? (data as ICreateOrganizationAsset)
+                : prev
+            )
+          }
+        />
       </Modal>
 
-
-      <Modal open={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} onSubmit={handleEditSubmit} title="Edit Aset">
+      <Modal
+        open={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        onSubmit={handleEditSubmit}
+        title="Edit Aset"
+      >
         {editFormData && (
           <EditOrganizationAssetForm
+            key={editFormData.id}
             formData={editFormData}
             onChange={(data: IUpdateOrganizationAsset) =>
               setEditFormData((prev) =>

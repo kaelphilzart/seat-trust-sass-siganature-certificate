@@ -1,28 +1,35 @@
 import { NextResponse } from 'next/server';
-import { getElementTypeById, updateElementType, deleteElementType } from '@/server/services/elementTypeServices';
+import {
+  getElementTypeById,
+  updateElementType,
+  deleteElementType,
+} from '@/server/services/elementTypeServices';
 import { uploadToCloudinaryElement } from '@/server/services/upload';
 
 // ============================
 // GET BY ID
 // ============================
 export async function GET(
-    _: Request,
-    { params }: { params: Promise<{ id: string }> }
+  _: Request,
+  { params }: { params: Promise<{ id: string }> }
 ) {
-    try {
-        const { id } = await params;
-        const feature = await getElementTypeById(id);
+  try {
+    const { id } = await params;
+    const feature = await getElementTypeById(id);
 
-        if (!feature)
-            return NextResponse.json({ message: 'Element tidak ditemukan' }, { status: 404 });
+    if (!feature)
+      return NextResponse.json(
+        { message: 'Element tidak ditemukan' },
+        { status: 404 }
+      );
 
-        return NextResponse.json(feature);
-    } catch (e: any) {
-        return NextResponse.json(
-            { message: e?.message || 'Server error' },
-            { status: 500 }
-        );
-    }
+    return NextResponse.json(feature);
+  } catch (e: any) {
+    return NextResponse.json(
+      { message: e?.message || 'Server error' },
+      { status: 500 }
+    );
+  }
 }
 
 // ============================
@@ -108,7 +115,6 @@ export async function PATCH(
       message: 'Element Type berhasil diupdate',
       data: updated,
     });
-
   } catch (e: any) {
     console.error('PATCH ELEMENT TYPE ERROR:', e);
 
@@ -129,7 +135,10 @@ export async function DELETE(
 
   try {
     await deleteElementType(id);
-    return NextResponse.json({ success: true, message: 'Element Type berhasil dihapus' });
+    return NextResponse.json({
+      success: true,
+      message: 'Element Type berhasil dihapus',
+    });
   } catch (e: any) {
     return NextResponse.json(
       { success: false, message: e?.message || 'Server error' },

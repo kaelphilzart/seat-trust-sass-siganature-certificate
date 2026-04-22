@@ -2,24 +2,21 @@ import { NextResponse } from 'next/server';
 import { createBatch, getAllBatch } from '@/server/services/batchServices';
 
 export async function GET() {
-    try {
-        return NextResponse.json({ data: await getAllBatch() });
-    } catch (e: any) {
-        console.error('GET batch ERROR:', e);
-        return NextResponse.json({ message: e?.message || 'Server error' }, { status: 500 });
-    }
+  try {
+    return NextResponse.json({ data: await getAllBatch() });
+  } catch (e: any) {
+    console.error('GET batch ERROR:', e);
+    return NextResponse.json(
+      { message: e?.message || 'Server error' },
+      { status: 500 }
+    );
+  }
 }
 
 export async function POST(req: Request) {
   try {
-    const {
-      name,
-      organization_id,
-      template_id,
-      start_date,
-      end_date,
-      status,
-    } = await req.json();
+    const { name, organization_id, template_id, start_date, end_date, status } =
+      await req.json();
 
     // ✅ validasi wajib
     if (!name || !organization_id || !template_id || !start_date || !end_date) {

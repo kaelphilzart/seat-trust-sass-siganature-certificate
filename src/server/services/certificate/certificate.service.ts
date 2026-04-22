@@ -1,21 +1,31 @@
 import { pool } from '@/lib/db';
-import { mapCertificateData, mapCertificateDataParticipant } from './certificate.mapper';
+import {
+  mapCertificateData,
+  mapCertificateDataParticipant,
+} from './certificate.mapper';
 import sharp from 'sharp';
 import QRCode from 'qrcode';
 import { buildQrTargetUrl } from '@/utils/qrCode';
 import archiver from 'archiver';
 import { PassThrough } from 'stream';
+import {
+  BatchRow,
+  TemplatePositionRow,
+  BindingRow,
+  RepresentativeRow,
+  ParticipantRow,
+} from '@/server/interfaces/Certificate.interface';
 
 export const downloadCertificate = async (batch_id: string) => {
-    if (!batch_id) {
-        throw new Error('batch_id is required');
-    }
+  if (!batch_id) {
+    throw new Error('batch_id is required');
+  }
 
-    // =========================
-    // 1. TEMPLATE
-    // =========================
-    const [batchRows] = await pool.query(
-        `
+  // =========================
+  // 1. TEMPLATE
+  // =========================
+  const [batchRows] = await pool.query<BatchRow[]>(
+    `
         SELECT 
             b.id,
             t.file_path
@@ -24,17 +34,17 @@ export const downloadCertificate = async (batch_id: string) => {
         WHERE b.id = ?
         LIMIT 1
         `,
-        [batch_id]
-    );
+    [batch_id]
+  );
 
-    const batch = (batchRows as any[])[0];
-    if (!batch) throw new Error('Batch not found');
+  const batch = batchRows[0];
+  if (!batch) throw new Error('Batch not found');
 
-    // =========================
-    // 2. POSITIONS (SOURCE OF TRUTH: batch_id)
-    // =========================
-    const [positions] = await pool.query(
-        `
+  // =========================
+  // 2. POSITIONS (SOURCE OF TRUTH: batch_id)
+  // =========================
+  const [positions] = await pool.query<TemplatePositionRow[]>(
+    `
         SELECT 
             tp.id,
             tp.x,
@@ -45,28 +55,28 @@ export const downloadCertificate = async (batch_id: string) => {
         FROM template_positions tp
         WHERE tp.batch_id = ?
         `,
-        [batch_id]
-    );
+    [batch_id]
+  );
 
-    // =========================
-    // 3. BINDINGS (SOURCE OF TRUTH: batch_id di binding!)
-    // =========================
-    const [bindings] = await pool.query(
-        `
+  // =========================
+  // 3. BINDINGS (SOURCE OF TRUTH: batch_id di binding!)
+  // =========================
+  const [bindings] = await pool.query<BindingRow[]>(
+    `
         SELECT 
             template_position_id,
             batch_representative_id
         FROM template_position_bindings
         WHERE batch_id = ?
         `,
-        [batch_id]
-    );
+    [batch_id]
+  );
 
-    // =========================
-    // 4. REPRESENTATIVES
-    // =========================
-    const [reps] = await pool.query(
-        `
+  // =========================
+  // 4. REPRESENTATIVES
+  // =========================
+  const [reps] = await pool.query<RepresentativeRow[]>(
+    `
         SELECT 
             br.id,
             br.representative_id,
@@ -77,95 +87,96 @@ export const downloadCertificate = async (batch_id: string) => {
             ON r.id = br.representative_id
         WHERE br.batch_id = ?
         `,
-        [batch_id]
-    );
+    [batch_id]
+  );
 
-    // =========================
-    // 5. MAP DATA
-    // =========================
-    const mapped = mapCertificateData({
-        positions: positions as any[],
-        bindings: bindings as any[],
-        representatives: reps as any[],
-    });
+  // =========================
+  // 5. MAP DATA
+  // =========================
+  const mapped = mapCertificateData({
+    positions,
+    bindings,
+    representatives: reps,
+  });
 
-    // =========================
-    // 6. TEMPLATE LOAD
-    // =========================
-    const templateRes = await fetch(batch.file_path);
-    const templateBuffer = Buffer.from(await templateRes.arrayBuffer());
+  // =========================
+  // 6. TEMPLATE LOAD
+  // =========================
+  const templateRes = await fetch(batch.file_path);
+  const templateBuffer = Buffer.from(await templateRes.arrayBuffer());
 
-    // =========================
-    // 7. QR BUILD
-    // =========================
-    const composites = await Promise.all(
-        mapped.map(async (item) => {
-            const targetUrl = buildQrTargetUrl(item.representative.id);
-            if (!targetUrl) return null;
+  // =========================
+  // 7. QR BUILD
+  // =========================
+  const composites = await Promise.all(
+    mapped.map(async (item) => {
+      const targetUrl = buildQrTargetUrl(item.representative.id);
+      if (!targetUrl) return null;
 
-            const qrBuffer = await QRCode.toBuffer(targetUrl, {
-                width: item.position.width,
-                margin: 0,
-                color: {
-                    dark: '#000000',
-                    light: '#00000000',
-                },
-            });
+      const qrBuffer = await QRCode.toBuffer(targetUrl, {
+        width: item.position.width,
+        margin: 0,
+        color: {
+          dark: '#000000',
+          light: '#00000000',
+        },
+      });
 
-            return {
-                input: qrBuffer,
-                top: item.position.y,
-                left: item.position.x,
-            };
-        })
-    );
+      return {
+        input: qrBuffer,
+        top: item.position.y,
+        left: item.position.x,
+      };
+    })
+  );
 
-    const validComposites = composites.filter(Boolean) as any[];
+  const validComposites = composites.filter(
+    (item): item is NonNullable<typeof item> => item !== null
+  );
 
-    // =========================
-    // 8. COMPOSE
-    // =========================
-    const finalImage = await sharp(templateBuffer)
-        .composite(validComposites)
-        .jpeg()
-        .toBuffer();
+  // =========================
+  // 8. COMPOSE
+  // =========================
+  const finalImage = await sharp(templateBuffer)
+    .composite(validComposites)
+    .jpeg()
+    .toBuffer();
 
-    return finalImage;
+  return finalImage;
 };
-
 
 // =========================
 // MAIN SERVICE
 // =========================
 export const downloadCertificateParticipant = async (
-    batch_id: string,
-    participant_id: string
+  batch_id: string,
+  participant_id: string
 ) => {
-    if (!batch_id) throw new Error('batch_id is required');
-    if (!participant_id) throw new Error('participant_id is required');
+  if (!batch_id) throw new Error('batch_id is required');
+  if (!participant_id) throw new Error('participant_id is required');
 
-    // =========================
-    // 1. TEMPLATE
-    // =========================
-    const [batchRows] = await pool.query(
-        `
+  // =========================
+  // 1. TEMPLATE
+  // =========================
+  const [batchRows] = await pool.query<BatchRow[]>(
+    `
         SELECT b.id, t.file_path
         FROM batches b
         LEFT JOIN templates t ON t.id = b.template_id
         WHERE b.id = ?
         LIMIT 1
         `,
-        [batch_id]
-    );
+    [batch_id]
+  );
 
-    const batch = (batchRows as any[])[0];
-    if (!batch) throw new Error('Batch not found');
+  const batch = batchRows[0];
+  if (!batch) throw new Error('Batch not found');
 
-    // =========================
-    // 2. POSITIONS
-    // =========================
-    const [positions] = await pool.query(
-        `
+  // =========================
+  // 2. POSITIONS
+  // =========================
+  const [positions] = await pool.query<TemplatePositionRow[]>(
+    `
         SELECT 
             tp.id,
             tp.x,
@@ -179,28 +190,28 @@ export const downloadCertificateParticipant = async (
         LEFT JOIN element_types et ON et.id = tp.element_type_id
         WHERE tp.batch_id = ?
         `,
-        [batch_id]
-    );
+    [batch_id]
+  );
 
-    // =========================
-    // 3. BINDINGS (FIXED: NO JOIN FILTER)
-    // =========================
-    const [bindings] = await pool.query(
-        `
+  // =========================
+  // 3. BINDINGS (FIXED: NO JOIN FILTER)
+  // =========================
+  const [bindings] = await pool.query<BindingRow[]>(
+    `
         SELECT 
             template_position_id,
             batch_representative_id
         FROM template_position_bindings
         WHERE batch_id = ?
         `,
-        [batch_id]
-    );
+    [batch_id]
+  );
 
-    // =========================
-    // 4. REPRESENTATIVES
-    // =========================
-    const [reps] = await pool.query(
-        `
+  // =========================
+  // 4. REPRESENTATIVES
+  // =========================
+  const [reps] = await pool.query<RepresentativeRow[]>(
+    `
         SELECT 
             br.id,
             br.representative_id,
@@ -211,92 +222,95 @@ export const downloadCertificateParticipant = async (
             ON r.id = br.representative_id
         WHERE br.batch_id = ?
         `,
-        [batch_id]
-    );
+    [batch_id]
+  );
 
-    // =========================
-    // 5. PARTICIPANT
-    // =========================
-    const [participantRows] = await pool.query(
-        `
+  // =========================
+  // 5. PARTICIPANT
+  // =========================
+  const [participantRows] = await pool.query<ParticipantRow[]>(
+    `
         SELECT id, name
         FROM participants
         WHERE id = ?
         LIMIT 1
         `,
-        [participant_id]
-    );
+    [participant_id]
+  );
 
-    const participant = (participantRows as any[])[0];
-    if (!participant) throw new Error('Participant not found');
+  const participant = participantRows[0];
+  if (!participant) throw new Error('Participant not found');
 
-    // =========================
-    // 6. FONT ASSET
-    // =========================
-    const fontRow = (positions as any[]).find((p) => p.code === 'font');
+  // =========================
+  // 6. FONT ASSET
+  // =========================
+  const fontRow = positions.find((p) => p.code === 'font');
+  // =========================
+  // 7. MAP
+  // =========================
+  const mapped = mapCertificateDataParticipant({
+    positions,
+    bindings,
+    representatives: reps,
+    participant,
+    fontAssets: fontRow?.asset_id
+      ? [
+          {
+            id: fontRow.asset_id,
+            file_path: fontRow.file_path,
+          },
+        ]
+      : [],
+  });
 
-    const fontUrl = fontRow?.asset_id
-        ? fontRow.file_path
-        : null;
+  // =========================
+  // 8. TEMPLATE
+  // =========================
+  const templateRes = await fetch(batch.file_path);
+  const templateBuffer = Buffer.from(await templateRes.arrayBuffer());
 
-    // =========================
-    // 7. MAP
-    // =========================
-    const mapped = mapCertificateDataParticipant({
-        positions: positions as any[],
-        bindings: bindings as any[],
-        representatives: reps as any[],
-        participant,
-        fontAssets: fontUrl
-            ? [{ id: fontRow.asset_id, file_path: fontUrl }]
-            : [],
-    });
+  // =========================
+  // 9. COMPOSITE
+  // =========================
+  const composites = await Promise.all(
+    mapped.map(async (item) => {
+      if (item.type === 'qr') {
+        const targetUrl = buildQrTargetUrl(
+          item.representative.representative_id
+        );
 
-    // =========================
-    // 8. TEMPLATE
-    // =========================
-    const templateRes = await fetch(batch.file_path);
-    const templateBuffer = Buffer.from(await templateRes.arrayBuffer());
+        if (!targetUrl) return null;
 
-    // =========================
-    // 9. COMPOSITE
-    // =========================
-    const composites = await Promise.all(
-        mapped.map(async (item) => {
+        const qrBuffer = await QRCode.toBuffer(targetUrl, {
+          width: item.position.width,
+          margin: 0,
+          color: {
+            dark: '#000',
+            light: '#0000',
+          },
+        });
 
-            if (item.type === 'qr') {
-                const targetUrl = buildQrTargetUrl(
-                    item.representative.representative_id
-                );
+        return {
+          input: qrBuffer,
+          top: item.position.y,
+          left: item.position.x,
+        };
+      }
 
-                if (!targetUrl) return null;
-
-                const qrBuffer = await QRCode.toBuffer(targetUrl, {
-                    width: item.position.width,
-                    margin: 0,
-                    color: {
-                        dark: '#000',
-                        light: '#0000',
-                    },
-                });
-
-                return {
-                    input: qrBuffer,
-                    top: item.position.y,
-                    left: item.position.x,
-                };
-            }
-
-            if (item.type === 'text') {
-                const svg = `
+      if (item.type === 'text') {
+        const svg = `
                     <svg width="${item.position.width}" height="${item.position.height}">
                         <style>
-                            ${item.font_url ? `
+                            ${
+                              item.font_url
+                                ? `
                                 @font-face {
                                     font-family: customFont;
                                     src: url(${item.font_url});
                                 }
-                            ` : ''}
+                            `
+                                : ''
+                            }
 
                             .text {
                                 font-family: ${item.font_url ? 'customFont' : 'sans-serif'};
@@ -311,81 +325,74 @@ export const downloadCertificateParticipant = async (
                     </svg>
                 `;
 
-                return {
-                    input: Buffer.from(svg),
-                    top: item.position.y,
-                    left: item.position.x,
-                };
-            }
+        return {
+          input: Buffer.from(svg),
+          top: item.position.y,
+          left: item.position.x,
+        };
+      }
 
-            return null;
-        })
-    );
+      return null;
+    })
+  );
 
-    const validComposites = composites.filter(Boolean) as any[];
+  const validComposites = composites.filter(
+    (item): item is NonNullable<typeof item> => item !== null
+  );
 
-    // =========================
-    // 10. FINAL IMAGE
-    // =========================
-    const finalImage = await sharp(templateBuffer)
-        .composite(validComposites)
-        .jpeg()
-        .toBuffer();
+  // =========================
+  // 10. FINAL IMAGE
+  // =========================
+  const finalImage = await sharp(templateBuffer)
+    .composite(validComposites)
+    .jpeg()
+    .toBuffer();
 
-    return finalImage;
+  return finalImage;
 };
 
 // BULK
 export const downloadCertificateBulk = async (
-    batch_id: string,
-    participant_ids: string[]
+  batch_id: string,
+  participant_ids: string[]
 ) => {
-    if (!batch_id) throw new Error('batch_id is required');
-    if (!participant_ids?.length)
-        throw new Error('participant_ids is required');
+  if (!batch_id) throw new Error('batch_id is required');
+  if (!participant_ids?.length) throw new Error('participant_ids is required');
 
-    const archive = archiver('zip', {
-        zlib: { level: 9 },
-    });
+  const archive = archiver('zip', {
+    zlib: { level: 9 },
+  });
 
-    const stream = new PassThrough();
-    archive.pipe(stream);
+  const stream = new PassThrough();
+  archive.pipe(stream);
 
-    // =========================
-    // LIMIT CONCURRENCY (IMPORTANT)
-    // =========================
-    const CONCURRENCY = 5;
-    let index = 0;
+  // =========================
+  // LIMIT CONCURRENCY (IMPORTANT)
+  // =========================
+  const CONCURRENCY = 5;
+  let index = 0;
 
-    const worker = async () => {
-        while (index < participant_ids.length) {
-            const current = participant_ids[index++];
-            if (!current) continue;
+  const worker = async () => {
+    while (index < participant_ids.length) {
+      const current = participant_ids[index++];
+      if (!current) continue;
 
-            try {
-                const buffer = await downloadCertificateParticipant(
-                    batch_id,
-                    current
-                );
+      try {
+        const buffer = await downloadCertificateParticipant(batch_id, current);
 
-                archive.append(buffer, {
-                    name: `certificate-${current}.jpg`,
-                });
-            } catch (err) {
-                console.error(
-                    `Failed generate for participant ${current}`,
-                    err
-                );
-            }
-        }
-    };
+        archive.append(buffer, {
+          name: `certificate-${current}.jpg`,
+        });
+      } catch (err) {
+        console.error(`Failed generate for participant ${current}`, err);
+      }
+    }
+  };
 
-    // spawn worker pool
-    await Promise.all(
-        Array.from({ length: CONCURRENCY }).map(() => worker())
-    );
+  // spawn worker pool
+  await Promise.all(Array.from({ length: CONCURRENCY }).map(() => worker()));
 
-    await archive.finalize();
+  await archive.finalize();
 
-    return stream;
+  return stream;
 };

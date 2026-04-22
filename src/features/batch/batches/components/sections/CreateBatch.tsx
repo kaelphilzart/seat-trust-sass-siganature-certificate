@@ -13,24 +13,31 @@ import EightStep from '../part/EightStep';
 import { ICreateBatch } from '@/types/batch';
 import { createBatch } from '@/hooks/batch';
 
-import { ICreateTemplatePosition, } from '@/types/template-position';
+import { ICreateTemplatePosition } from '@/types/template-position';
 import { syncTemplatePositionsBulk } from '@/hooks/template-position';
 import { syncBatchRepresentatives } from '@/hooks/batch-representative';
 import { syncTemplatePositionBindings } from '@/hooks/template-position-bindings';
 import { ICreateParticipant } from '@/types/participant';
 import { createBulkParticipants } from '@/hooks/participant';
+import { ICreateTemplatePositionBinding } from '@/types/template-position-binding';
 
 import { useAlert } from '@/components/alert/alert-dialog-global';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { paths } from '@/routes/paths';
 
+type SafeError = {
+  message?: string;
+};
+
 export default function CreateBatch({
   batchId: initialBatchId,
 }: {
   batchId?: string | null;
 }) {
-  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5 | 6 | 7 | 8>(1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5 | 6 | 7 | 8>(
+    initialBatchId ? 3 : 1
+  );
   const alert = useAlert();
   const router = useRouter();
   const { data: session } = useSession();
@@ -46,30 +53,21 @@ export default function CreateBatch({
   });
 
   const [templateId, setTemplateId] = useState<string | null>(null);
-  const [batchId, setBatchId] = useState<string | null>(
-    initialBatchId ?? null
-  );
+  const [batchId, setBatchId] = useState<string | null>(initialBatchId ?? null);
 
-
-  // Step 2 data
-  useEffect(() => {
-    if (initialBatchId) {
-      setStep(3); // atau step sesuai flow lu
-    }
-  }, [initialBatchId]);
-
-  const [templatePosition, setTemplatePosition] = useState<ICreateTemplatePosition>({
-    batch_id: '',
-    element_type_id: '',
-    x: 0,
-    y: 0,
-    width: 0,
-    height: 0,
-    rotation: 0,
-    asset_id: '',
-    font_size: 0,
-    font_weight: '',
-  });
+  const [templatePosition, setTemplatePosition] =
+    useState<ICreateTemplatePosition>({
+      batch_id: '',
+      element_type_id: '',
+      x: 0,
+      y: 0,
+      width: 0,
+      height: 0,
+      rotation: 0,
+      asset_id: '',
+      font_size: 0,
+      font_weight: '',
+    });
 
   // Step 4 data
 
@@ -84,8 +82,7 @@ export default function CreateBatch({
       e.returnValue = '';
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
-    return () =>
-      window.removeEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [isDirty]);
 
   /* ================= HANDLE SUBMIT BATCH ================= */
@@ -93,46 +90,45 @@ export default function CreateBatch({
     if (loading) return;
 
     if (!event.name) return alert.error('Nama event wajib diisi!');
-    if (!templateId) return alert.error('Template wajib dipilih atau file di-upload!');
+    if (!templateId)
+      return alert.error('Template wajib dipilih atau file di-upload!');
 
-    await alert.confirmAsync(
-      'Yakin ingin membuat batch ini?',
-      async () => {
-        setLoading(true);
-        try {
-          const payload: ICreateBatch = {
-            name: event.name,
-            start_date: event.start_date ? new Date(event.start_date) : undefined,
-            end_date: event.end_date ? new Date(event.end_date) : undefined,
-            template_id: templateId || undefined,
-            organization_id: organizationId || undefined,
-            status: 'DRAFT',
-          };
+    await alert.confirmAsync('Yakin ingin membuat batch ini?', async () => {
+      setLoading(true);
+      try {
+        const payload: ICreateBatch = {
+          name: event.name,
+          start_date: event.start_date ? new Date(event.start_date) : undefined,
+          end_date: event.end_date ? new Date(event.end_date) : undefined,
+          template_id: templateId || undefined,
+          organization_id: organizationId || undefined,
+          status: 'DRAFT',
+        };
 
-          const res = await createBatch(payload);
+        const res = await createBatch(payload);
 
-          // misalnya API balikin id
-          const createdBatchId = res.data?.id;
-          alert.success('Batch berhasil dibuat!');
+        // misalnya API balikin id
+        const createdBatchId = res.data?.id;
+        alert.success('Batch berhasil dibuat!');
 
-          // Reset Step 1 & 2
-          setEvent({ name: '', start_date: '', end_date: '' });
-          setTemplateId(null);
+        // Reset Step 1 & 2
+        setEvent({ name: '', start_date: '', end_date: '' });
+        setTemplateId(null);
 
-          // Lanjut ke Step 3: Pilihan tambahan
-          setBatchId(createdBatchId ?? '');
-          setStep(3);
-          return { success: true };
-        } catch (err: any) {
-          return {
-            success: false,
-            message: err?.message || 'Gagal membuat batch',
-          };
-        } finally {
-          setLoading(false);
-        }
+        // Lanjut ke Step 3: Pilihan tambahan
+        setBatchId(createdBatchId ?? '');
+        setStep(3);
+        return { success: true };
+      } catch (err: unknown) {
+        const error = err as SafeError;
+        return {
+          success: false,
+          message: error?.message || 'Terjadi kesalahan',
+        };
+      } finally {
+        setLoading(false);
       }
-    );
+    });
   };
 
   /* ================= HANDLE STEP 3 CHOICE ================= */
@@ -189,10 +185,11 @@ export default function CreateBatch({
           setStep(5);
 
           return { success: true };
-        } catch (err: any) {
+        } catch (err: unknown) {
+          const error = err as SafeError;
           return {
             success: false,
-            message: err?.message || 'Gagal menyimpan template position',
+            message: error?.message || 'Gagal menyimpan template position',
           };
         } finally {
           setLoading(false);
@@ -245,10 +242,11 @@ export default function CreateBatch({
           setStep(6);
 
           return { success: true };
-        } catch (err: any) {
+        } catch (err: unknown) {
+          const error = err as SafeError;
           return {
             success: false,
-            message: err?.message || 'Gagal menyimpan representative',
+            message: error?.message || 'Gagal menyimpan representative',
           };
         } finally {
           setLoading(false);
@@ -262,7 +260,7 @@ export default function CreateBatch({
     data,
     isDirty,
   }: {
-    data: any[];
+    data: ICreateTemplatePositionBinding[];
     isDirty: boolean;
   }) => {
     if (loading) return;
@@ -295,10 +293,11 @@ export default function CreateBatch({
           setStep(7);
 
           return { success: true };
-        } catch (err: any) {
+        } catch (err: unknown) {
+          const error = err as SafeError;
           return {
             success: false,
-            message: err?.message || 'Gagal menyimpan assignment',
+            message: error?.message || 'Gagal menyimpan assignment',
           };
         } finally {
           setLoading(false);
@@ -317,9 +316,11 @@ export default function CreateBatch({
     }
   };
 
-  const handleStep8Finish = async (
-    participants: Omit<ICreateParticipant, 'batch_id'>[]
-  ) => {
+  const handleStep8Finish = async ({
+    participants,
+  }: {
+    participants: Omit<ICreateParticipant, 'batch_id'>[];
+  }) => {
     if (loading) return;
     if (!batchId) return alert.error('Batch belum tersedia!');
 
@@ -355,10 +356,11 @@ export default function CreateBatch({
           router.push(paths.batch.base);
 
           return { success: true };
-        } catch (err: any) {
+        } catch (err: unknown) {
+          const error = err as SafeError;
           return {
             success: false,
-            message: err?.message || 'Gagal menambahkan participants',
+            message: error?.message || 'Gagal menambahkan participants',
           };
         } finally {
           setLoading(false);
@@ -397,7 +399,7 @@ export default function CreateBatch({
         />
       )}
 
-      {step === 4 && (
+      {step === 4 && batchId && (
         <FourStep
           batchId={batchId}
           data={templatePosition}
@@ -407,7 +409,7 @@ export default function CreateBatch({
         />
       )}
 
-      {step === 5 && (
+      {step === 5 && batchId && (
         <FiveStep
           onBack={() => setStep(4)}
           onFinish={handleStep5Finish}
@@ -415,7 +417,7 @@ export default function CreateBatch({
         />
       )}
 
-      {step === 6 && (
+      {step === 6 && batchId && (
         <SixStep
           onBack={() => setStep(5)}
           onFinish={handleStep6Finish}
@@ -423,20 +425,10 @@ export default function CreateBatch({
         />
       )}
 
-      {step === 7 && (
-        <SevenStep
-          onBack={() => setStep(6)}
-          onFinish={handleStep7Finish}
-          batchId={batchId}
-        />
-      )}
+      {step === 7 && <SevenStep onFinish={handleStep7Finish} />}
 
       {step === 8 && (
-        <EightStep
-          onBack={() => setStep(7)}
-          onFinish={handleStep8Finish}
-          batchId={batchId}
-        />
+        <EightStep onBack={() => setStep(7)} onFinish={handleStep8Finish} />
       )}
 
       {loading && <div className="text-center mt-4">Submitting...</div>}

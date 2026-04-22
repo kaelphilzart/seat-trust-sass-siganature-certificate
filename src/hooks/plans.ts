@@ -25,12 +25,15 @@ export function useGetAllPlan() {
     options
   );
 
-  const memoized = useMemo(() => ({
-    plans: (data?.data || []) as IPlan[],
-    plansLoading: isLoading,
-    plansIsValidating: isValidating,
-    plansError: error,
-  }), [data, isLoading, isValidating, error]);
+  const memoized = useMemo(
+    () => ({
+      plans: (data?.data || []) as IPlan[],
+      plansLoading: isLoading,
+      plansIsValidating: isValidating,
+      plansError: error,
+    }),
+    [data, isLoading, isValidating, error]
+  );
 
   return memoized;
 }
@@ -42,11 +45,14 @@ export function useGetOnePlan(id?: string) {
     (url: string) => request<IPlan>(url)
   );
 
-  const memoized = useMemo(() => ({
-    planOne: data || null,
-    planOneLoading: isLoading,
-    planOneError: !!error,
-  }), [data, isLoading, error]);
+  const memoized = useMemo(
+    () => ({
+      planOne: data || null,
+      planOneLoading: isLoading,
+      planOneError: !!error,
+    }),
+    [data, isLoading, error]
+  );
 
   return memoized;
 }
@@ -73,18 +79,18 @@ export async function createPlan(
 
     // 2️⃣ Kalau ada featureValues → bulk insert plan feature values
     if (featureValues && Object.keys(featureValues).length > 0) {
-      const payload: ICreatePlanFeatureValue[] = Object.entries(featureValues).map(
-        ([feature_id, value]) => ({
-          plan_id: plan.id,
-          feature_id,
-          value:
-            typeof value === 'boolean'
+      const payload: ICreatePlanFeatureValue[] = Object.entries(
+        featureValues
+      ).map(([feature_id, value]) => ({
+        plan_id: plan.id,
+        feature_id,
+        value:
+          typeof value === 'boolean'
+            ? value.toString()
+            : typeof value === 'number'
               ? value.toString()
-              : typeof value === 'number'
-                ? value.toString()
-                : value,
-        })
-      );
+              : value,
+      }));
 
       await request<ICreatePlanFeatureValue[]>(URL_PLAN_FEATURE, {
         method: 'POST',
@@ -96,9 +102,8 @@ export async function createPlan(
     mutate((key) => typeof key === 'string' && key.startsWith(URL_PLAN));
 
     return plan;
-  } catch (error: any) {
-    console.error('Error saat membuat plan:', error.message || error);
-    return false;
+  } catch (error: unknown) {
+    throw error;
   }
 }
 
@@ -107,35 +112,25 @@ export async function createPlan(
 // ===========================
 export async function editPlan(id: string, data: Partial<IUpdatePlan>) {
   try {
-    const res = await request<IUpdatePlan>(`${URL_PLAN}/${id}`, { method: 'PATCH', body: data });
-
-    // update cache lokal SWR
-    mutate(
-      URL_PLAN,
-      (existing: any) => {
-        if (!existing?.data) return { data: [res] };
-        return {
-          ...existing,
-          data: existing.data.map((item: IPlan) => (item.id === id ? { ...item, ...data } : item)),
-        };
-      },
-      false
-    );
-
-    // invalidate semua cache plan
-    mutate((key) => typeof key === 'string' && key.startsWith(URL_PLAN));
-
+    const res = await request<IPlan>(`${URL_PLAN}/${id}`, {
+      method: 'PATCH',
+      body: data,
+    });
+    await Promise.all([
+      mutate(`${URL_PLAN}/${id}`), // Refresh detail plan spesifik
+      mutate((key) => typeof key === 'string' && key.startsWith(URL_PLAN)), // Refresh list plan
+    ]);
     return res;
-  } catch (error: any) {
-    console.error('Error saat mengupdate plan:', error.message || error);
-    return false;
+  } catch (error: unknown) {
+    throw error;
   }
 }
-
 // ===========================
 // DELETE PLAN
 // ===========================
-export async function deletePlan(id: string): Promise<{ success: boolean; message?: string }> {
+export async function deletePlan(
+  id: string
+): Promise<{ success: boolean; message?: string }> {
   try {
     const res = await fetch(`${URL_PLAN}/${id}`, { method: 'DELETE' });
     if (!res.ok) {
@@ -156,11 +151,7 @@ export async function deletePlan(id: string): Promise<{ success: boolean; messag
     ]);
 
     return { success: true };
-  } catch (error: any) {
-    console.error('Error saat menghapus plan:', error?.message || error);
-    return {
-      success: false,
-      message: error?.message || 'Terjadi kesalahan saat menghapus plan.',
-    };
+  } catch (error: unknown) {
+    throw error;
   }
 }

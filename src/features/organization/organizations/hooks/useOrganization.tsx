@@ -4,9 +4,10 @@ import { useSession } from 'next-auth/react';
 import { lazy, useMemo } from 'react';
 import NoAccessFallback from '@/auth/NoAccessFallback';
 
-
 const AdminSection = lazy(() => import('../components/sections/AdminSection'));
-const SuperAdminSection = lazy(() => import('../components/sections/SuperAdminSection'));
+const SuperAdminSection = lazy(
+  () => import('../components/sections/SuperAdminSection')
+);
 
 export function useOrganization() {
   const { data: session } = useSession();

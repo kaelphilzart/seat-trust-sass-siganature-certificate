@@ -1,35 +1,35 @@
 import { pool } from '@/lib/db';
 import { redis } from '@/lib/redis';
-import { ITemplate, ICreateTemplate, IUpdateTemplate } from '@/types/template';
+import { ICreateTemplate } from '@/types/template';
 import { randomUUID } from 'crypto';
+import { TemplateRow, TemplateOrgRow } from '../interfaces/Template.interface';
+import { mapTemplate } from '../mappers/Template.mapper';
 
 const CACHE_ALL_TEMPLATES = 'template:all';
 
 // GET
-export const getAllTemplates = async (
-    organization_id?: string
-): Promise<ITemplate[]> => {
-    const cacheKey = organization_id
-        ? `${CACHE_ALL_TEMPLATES}:${organization_id}`
-        : CACHE_ALL_TEMPLATES;
+export const getAllTemplates = async (organization_id?: string) => {
+  const cacheKey = organization_id
+    ? `${CACHE_ALL_TEMPLATES}:${organization_id}`
+    : CACHE_ALL_TEMPLATES;
 
-    const cached = await redis.get<ITemplate[]>(cacheKey);
-    if (cached) return cached;
+  const cached = await redis.get(cacheKey);
+  if (cached) return cached;
 
-    const conditions: string[] = [];
-    const values: any[] = [];
+  const conditions: string[] = [];
+  const values: (string | number)[] = [];
 
-    if (organization_id) {
-        conditions.push("t.organization_id = ?");
-        values.push(organization_id);
-    }
+  if (organization_id) {
+    conditions.push('t.organization_id = ?');
+    values.push(organization_id);
+  }
 
-    const whereClause = conditions.length
-        ? `WHERE ${conditions.join(" AND ")}`
-        : "";
+  const whereClause = conditions.length
+    ? `WHERE ${conditions.join(' AND ')}`
+    : '';
 
-    const [rows] = await pool.query(
-        `
+  const [rows] = await pool.query<TemplateRow[]>(
+    `
     SELECT 
       t.id,
       t.name,
@@ -49,41 +49,23 @@ export const getAllTemplates = async (
     ${whereClause}
     ORDER BY t.created_at DESC
     `,
-        values
-    );
+    values
+  );
 
-    const templates = (rows as any[]).map((row) => ({
-        id: row.id,
-        name: row.name,
-        file_path: row.file_path,
-        organization_id: row.organization_id,
-        created_at: row.created_at,
-        updated_at: row.updated_at,
+  const templates = rows.map(mapTemplate);
 
-        organization: row.org_id
-            ? {
-                id: row.org_id,
-                name: row.org_name,
-                slug: row.org_slug,
-                logo: row.org_logo,
-            }
-            : null,
-    }));
+  await redis.set(cacheKey, templates, { ex: 60 });
 
-    await redis.set(cacheKey, templates, { ex: 60 });
-
-    return templates;
+  return templates;
 };
 
 // GET BY ID
-export const getTemplateById = async (
-  id: string
-): Promise<ITemplate | null> => {
+export const getTemplateById = async (id: string) => {
   if (!id) {
-    throw new Error("Template ID is required");
+    throw new Error('Template ID is required');
   }
 
-  const [rows] = await pool.query(
+  const [rows] = await pool.query<TemplateRow[]>(
     `
     SELECT 
       t.id,
@@ -96,9 +78,7 @@ export const getTemplateById = async (
       o.id as org_id,
       o.name as org_name,
       o.slug as org_slug,
-      o.logo as org_logo,
-      o.created_at as org_created_at,
-      o.updated_at as org_updated_at
+      o.logo as org_logo
 
     FROM templates t
     LEFT JOIN organizations o
@@ -109,27 +89,10 @@ export const getTemplateById = async (
     [id]
   );
 
-  const row = (rows as any[])[0];
+  const row = rows[0];
   if (!row) return null;
 
-  return {
-    id: row.id,
-    name: row.name,
-    file_path: row.file_path,
-    created_at: row.created_at,
-    updated_at: row.updated_at,
-
-    organization: row.org_id
-      ? {
-          id: row.org_id,
-          name: row.org_name,
-          slug: row.org_slug,
-          logo: row.org_logo,
-          created_at: row.org_created_at,
-          updated_at: row.org_updated_at,
-        }
-      : null,
-  };
+  return mapTemplate(row);
 };
 
 // ===============================
@@ -140,7 +103,6 @@ export const createTemplate = async (data: {
   file_path: string;
   organization_id: string;
 }): Promise<ICreateTemplate> => {
-
   const id = randomUUID();
 
   await pool.query(
@@ -153,6 +115,7 @@ export const createTemplate = async (data: {
   );
 
   await redis.del(CACHE_ALL_TEMPLATES);
+  await redis.del(`${CACHE_ALL_TEMPLATES}:${data.organization_id}`);
 
   return {
     id,
@@ -234,6 +197,15 @@ export const createTemplate = async (data: {
 // DELETE
 // ===============================
 export const deleteTemplate = async (id: string): Promise<void> => {
-    await pool.query('DELETE FROM templates WHERE id = ?', [id]);
-    await redis.del(CACHE_ALL_TEMPLATES);
+  const [rows] = await pool.query<TemplateOrgRow[]>(
+    'SELECT organization_id FROM templates WHERE id = ?',
+    [id]
+  );
+
+  const organizationId = rows?.[0]?.organization_id;
+  await pool.query('DELETE FROM templates WHERE id = ?', [id]);
+  await redis.del(CACHE_ALL_TEMPLATES);
+  if (organizationId) {
+    await redis.del(`${CACHE_ALL_TEMPLATES}:${organizationId}`);
+  }
 };

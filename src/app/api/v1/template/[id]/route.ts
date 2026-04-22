@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAllTemplates, deleteTemplate } from '@/server/services/template';
 
-
 // ============================
 // (GET)
 // ============================
@@ -22,7 +21,6 @@ export async function GET(
     );
   }
 }
-
 
 // ============================
 // (PATCH)
@@ -65,7 +63,10 @@ export async function DELETE(
 
   try {
     await deleteTemplate(id);
-    return NextResponse.json({ success: true, message: 'Template berhasil dihapus' });
+    return NextResponse.json({
+      success: true,
+      message: 'Template berhasil dihapus',
+    });
   } catch (e: any) {
     return NextResponse.json(
       { success: false, message: e?.message || 'Server error' },

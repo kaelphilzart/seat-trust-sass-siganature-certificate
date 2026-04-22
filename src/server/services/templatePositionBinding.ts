@@ -1,38 +1,43 @@
 import { pool } from '@/lib/db';
 import { redis } from '@/lib/redis';
-import { ITemplatePositionBinding, ICreateTemplatePositionBinding } from '@/types/template-position-binding';
+import {
+  ITemplatePositionBinding,
+  ICreateTemplatePositionBinding,
+} from '@/types/template-position-binding';
 import { randomUUID } from 'crypto';
-import { RowDataPacket } from "mysql2";
+import {
+  TemplatePositionBindingRow,
+  ExistingTemplateBindingRow,
+  InsertTemplateBindingTuple,
+} from '@/server/interfaces/TemplatePostionBinding.interface';
+import { mapTemplatePositionBinding } from '../mappers/TemplatePosiitonBinding.mapper';
 
 const CACHE_ALL_TEMPLATE_POSITION_BINDINGS = 'template_position_bindings:all';
 
 export const getAllTemplatePositionBindings = async (
-    batch_id?: string
+  batch_id?: string
 ): Promise<ITemplatePositionBinding[]> => {
-    const cacheKey = batch_id
-        ? `${CACHE_ALL_TEMPLATE_POSITION_BINDINGS}:${batch_id}`
-        : CACHE_ALL_TEMPLATE_POSITION_BINDINGS;
+  const cacheKey = batch_id
+    ? `${CACHE_ALL_TEMPLATE_POSITION_BINDINGS}:${batch_id}`
+    : CACHE_ALL_TEMPLATE_POSITION_BINDINGS;
 
-    const cached = await redis.get<ITemplatePositionBinding[]>(cacheKey);
-    if (cached) return cached;
+  const cached = await redis.get<ITemplatePositionBinding[]>(cacheKey);
+  if (cached) return cached;
 
-    const conditions: string[] = [];
-    const values: any[] = [];
+  const conditions: string[] = [];
+  const values: (string | number)[] = [];
 
-    // =========================
-    // FIX UTAMA: SCOPING BY BATCH
-    // =========================
-    if (batch_id) {
-        conditions.push('tpb.batch_id = ?');
-        values.push(batch_id);
-    }
+  if (batch_id) {
+    conditions.push('tpb.batch_id = ?');
+    values.push(batch_id);
+  }
 
-    const whereClause = conditions.length
-        ? `WHERE ${conditions.join(' AND ')}`
-        : '';
+  const whereClause = conditions.length
+    ? `WHERE ${conditions.join(' AND ')}`
+    : '';
 
-    const [rows] = await pool.query<RowDataPacket[]>(
-        `
+  const [rows] = await pool.query<TemplatePositionBindingRow[]>(
+    `
         SELECT 
           tpb.id,
           tpb.batch_id,
@@ -60,299 +65,167 @@ export const getAllTemplatePositionBindings = async (
         ${whereClause}
         ORDER BY tpb.created_at DESC
         `,
-        values
-    );
+    values
+  );
 
-    const templatePositionBindings: ITemplatePositionBinding[] = rows.map((row: any) => ({
-        id: row.id,
-        batch_id: row.batch_id,
-        templatePosition: row.template_position_id
-            ? {
-                id: row.template_position_id,
-                batch_id: row.template_batch_id,
-            }
-            : null,
+  // 🔥 FIX: USE MAPPER (NO INLINE MAP)
+  const templatePositionBindings = rows.map(mapTemplatePositionBinding);
 
-        batchRepresentative: row.batch_representative_id
-            ? {
-                id: row.batch_representative_id,
-                batch: row.batch_id
-                    ? {
-                        id: row.batch_id,
-                        name: row.batch_name,
-                    }
-                    : null,
-                representative: row.representative_id
-                    ? {
-                        id: row.representative_id,
-                        name: row.representative_name,
-                        title: row.representative_title,
-                    }
-                    : null,
-                created_at: row.created_at,
-                updated_at: row.updated_at,
-            }
-            : null,
+  await redis.set(cacheKey, templatePositionBindings, { ex: 60 });
 
-        created_at: row.created_at,
-        updated_at: row.updated_at,
-    }));
-
-    await redis.set(cacheKey, templatePositionBindings, { ex: 60 });
-
-    return templatePositionBindings;
+  return templatePositionBindings;
 };
-
 
 // GET BY ID
 export const getTemplatePositionBindingById = async (
-    id: string
+  id: string
 ): Promise<ITemplatePositionBinding | null> => {
-    if (!id) {
-        throw new Error('Template position binding ID is required');
-    }
+  if (!id) {
+    throw new Error('Template position binding ID is required');
+  }
 
-    const [rows] = await pool.query<RowDataPacket[]>(
-        `
-    SELECT 
-      tpb.id,
+  const [rows] = await pool.query<TemplatePositionBindingRow[]>(
+    `
+        SELECT 
+          tpb.id,
 
-      -- template position
-      tp.id AS template_position_id,
-      tp.batch_id AS template_batch_id,
+          tp.id AS template_position_id,
+          tp.batch_id AS template_batch_id,
 
-      -- batch representative
-      br.id AS batch_representative_id,
+          br.id AS batch_representative_id,
 
-      -- batch
-      b.id AS batch_id,
-      b.name AS batch_name,
+          b.id AS batch_id,
+          b.name AS batch_name,
 
-      -- representative
-      r.id AS representative_id,
-      r.name AS representative_name,
-      r.title AS representative_title,
+          r.id AS representative_id,
+          r.name AS representative_name,
+          r.title AS representative_title,
 
-      tpb.created_at,
-      tpb.updated_at
+          tpb.created_at,
+          tpb.updated_at
 
-    FROM template_position_bindings tpb
-    LEFT JOIN template_positions tp ON tp.id = tpb.template_position_id
-    LEFT JOIN batch_representatives br ON br.id = tpb.batch_representative_id
-    LEFT JOIN batches b ON b.id = br.batch_id
-    LEFT JOIN representatives r ON r.id = br.representative_id
+        FROM template_position_bindings tpb
+        LEFT JOIN template_positions tp ON tp.id = tpb.template_position_id
+        LEFT JOIN batch_representatives br ON br.id = tpb.batch_representative_id
+        LEFT JOIN batches b ON b.id = br.batch_id
+        LEFT JOIN representatives r ON r.id = br.representative_id
 
-    WHERE tpb.id = ?
-    LIMIT 1
-    `,
-        [id]
-    );
+        WHERE tpb.id = ?
+        LIMIT 1
+        `,
+    [id]
+  );
 
-    const row = rows[0];
-    if (!row) return null;
+  const row = rows[0];
+  if (!row) return null;
 
-    return {
-        id: row.id,
-
-        templatePosition: row.template_position_id
-            ? {
-                id: row.template_position_id,
-                batch_id: row.template_batch_id,
-            }
-            : null,
-
-        batchRepresentative: row.batch_representative_id
-            ? {
-                id: row.batch_representative_id,
-                batch: row.batch_id
-                    ? {
-                        id: row.batch_id,
-                        name: row.batch_name,
-                    }
-                    : null,
-                representative: row.representative_id
-                    ? {
-                        id: row.representative_id,
-                        name: row.representative_name,
-                        title: row.representative_title,
-                    }
-                    : null,
-                created_at: row.created_at,
-                updated_at: row.updated_at,
-            }
-            : null,
-
-        created_at: row.created_at,
-        updated_at: row.updated_at,
-    };
+  // 🔥 CLEAN: pakai mapper
+  return mapTemplatePositionBinding(row);
 };
-
 
 // CREATE
 export const upsertTemplatePositionBindingsBulk = async (
-    data: ICreateTemplatePositionBinding[]
+  data: ICreateTemplatePositionBinding[]
 ): Promise<boolean> => {
-    if (!data.length) return false;
+  if (!data.length) return false;
 
-    const conn = await pool.getConnection();
+  const conn = await pool.getConnection();
 
-    try {
-        await conn.beginTransaction();
+  try {
+    await conn.beginTransaction();
 
-        const batchId = data[0].batch_id;
+    const batchId = data[0].batch_id;
 
-        // =========================
-        // 1. FETCH EXISTING
-        // =========================
-        const [existingRows] = await conn.query<RowDataPacket[]>(
-            `
+    // =========================
+    // 1. FETCH EXISTING
+    // =========================
+    const [existingRows] = await conn.query<ExistingTemplateBindingRow[]>(
+      `
             SELECT id, template_position_id, batch_representative_id
             FROM template_position_bindings
             WHERE batch_id = ?
             `,
-            [batchId]
-        );
+      [batchId]
+    );
 
-        const existingMap = new Map<string, string>();
+    const existingMap = new Map<string, string>();
 
-        for (const row of existingRows as any[]) {
-            const key = `${row.template_position_id}-${row.batch_representative_id}`;
-            existingMap.set(key, row.id);
-        }
+    for (const row of existingRows) {
+      const key = `${row.template_position_id}-${row.batch_representative_id}`;
+      existingMap.set(key, row.id);
+    }
 
-        // =========================
-        // 2. BUILD INCOMING STATE
-        // =========================
-        const incomingSet = new Set<string>();
+    // =========================
+    // 2. BUILD INCOMING STATE
+    // =========================
+    const incomingSet = new Set<string>();
 
-        for (const item of data) {
-            const key = `${item.template_position_id}-${item.batch_representative_id}`;
-            incomingSet.add(key);
-        }
+    for (const item of data) {
+      const key = `${item.template_position_id}-${item.batch_representative_id}`;
+      incomingSet.add(key);
+    }
 
-        // =========================
-        // 3. INSERT NEW ONLY (WITH UUID FIX)
-        // =========================
-        const insertValues: any[] = [];
+    // =========================
+    // 3. INSERT NEW ONLY
+    // =========================
+    const insertValues: InsertTemplateBindingTuple[] = [];
 
-        for (const item of data) {
-            const key = `${item.template_position_id}-${item.batch_representative_id}`;
+    for (const item of data) {
+      const key = `${item.template_position_id}-${item.batch_representative_id}`;
 
-            if (!existingMap.has(key)) {
-                insertValues.push([
-                    randomUUID(), // 🔥 FIX PRIMARY KEY
-                    batchId,
-                    item.template_position_id,
-                    item.batch_representative_id,
-                ]);
-            }
-        }
+      if (!existingMap.has(key)) {
+        insertValues.push([
+          randomUUID(),
+          batchId,
+          item.template_position_id,
+          item.batch_representative_id,
+        ]);
+      }
+    }
 
-        if (insertValues.length) {
-            await conn.query(
-                `
+    if (insertValues.length) {
+      await conn.query(
+        `
                 INSERT INTO template_position_bindings
                 (id, batch_id, template_position_id, batch_representative_id)
                 VALUES ?
                 `,
-                [insertValues]
-            );
-        }
+        [insertValues]
+      );
+    }
 
-        // =========================
-        // 4. DELETE MISSING
-        // =========================
-        const toDelete = existingRows
-            .filter((row: any) => {
-                const key = `${row.template_position_id}-${row.batch_representative_id}`;
-                return !incomingSet.has(key);
-            })
-            .map((row: any) => row.id);
+    // =========================
+    // 4. DELETE MISSING
+    // =========================
+    const toDelete = existingRows
+      .filter((row) => {
+        const key = `${row.template_position_id}-${row.batch_representative_id}`;
+        return !incomingSet.has(key);
+      })
+      .map((row) => row.id);
 
-        if (toDelete.length) {
-            await conn.query(
-                `
+    if (toDelete.length) {
+      await conn.query(
+        `
                 DELETE FROM template_position_bindings
                 WHERE id IN (?)
                 `,
-                [toDelete]
-            );
-        }
-
-        // =========================
-        // 5. CACHE INVALIDATION
-        // =========================
-        await redis.del(CACHE_ALL_TEMPLATE_POSITION_BINDINGS);
-        await redis.del(`${CACHE_ALL_TEMPLATE_POSITION_BINDINGS}:${batchId}`);
-
-        await conn.commit();
-        return true;
-
-    } catch (err) {
-        await conn.rollback();
-        throw err;
-    } finally {
-        conn.release();
+        [toDelete]
+      );
     }
+
+    // =========================
+    // 5. CACHE INVALIDATION
+    // =========================
+    await redis.del(CACHE_ALL_TEMPLATE_POSITION_BINDINGS);
+    await redis.del(`${CACHE_ALL_TEMPLATE_POSITION_BINDINGS}:${batchId}`);
+
+    await conn.commit();
+    return true;
+  } catch (err) {
+    await conn.rollback();
+    throw err;
+  } finally {
+    conn.release();
+  }
 };
-
-// delete
-export const deleteTemplatePositionBindingsBulk = async (
-    ids: string[]
-): Promise<boolean> => {
-    if (!ids.length) return false;
-
-    const conn = await pool.getConnection();
-
-    try {
-        await conn.beginTransaction();
-
-        // =========================
-        // 1. GET template_position_id (buat cache invalidation)
-        // =========================
-        const [rows] = await conn.query<RowDataPacket[]>(
-            `
-      SELECT DISTINCT template_position_id 
-      FROM template_position_bindings
-      WHERE id IN (?)
-      `,
-            [ids]
-        );
-
-        const templatePositionIds = rows.map(
-            (r: any) => r.template_position_id
-        );
-
-        // =========================
-        // 2. DELETE
-        // =========================
-        await conn.query(
-            `DELETE FROM template_position_bindings WHERE id IN (?)`,
-            [ids]
-        );
-
-        // =========================
-        // 3. CACHE INVALIDATION 🔥
-        // =========================
-        await redis.del(CACHE_ALL_TEMPLATE_POSITION_BINDINGS);
-
-        for (const templatePositionId of templatePositionIds) {
-            await redis.del(
-                `${CACHE_ALL_TEMPLATE_POSITION_BINDINGS}:${templatePositionId}`
-            );
-        }
-
-        await conn.commit();
-        return true;
-
-    } catch (err) {
-        await conn.rollback();
-        throw err;
-    } finally {
-        conn.release();
-    }
-};
-
-
-
-

@@ -34,15 +34,15 @@
   }
 
   section {
-    @apply py-14
+    @apply py-14;
   }
 
   h1 {
-    @apply text-black md:text-7xl sm:text-6xl text-5xl
+    @apply text-black md:text-7xl sm:text-6xl text-5xl;
   }
 
   h2 {
-    @apply text-black sm:text-5xl text-4xl
+    @apply text-black sm:text-5xl text-4xl;
   }
 }
 

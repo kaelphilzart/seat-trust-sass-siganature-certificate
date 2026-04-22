@@ -1,17 +1,23 @@
 import { NextResponse } from 'next/server';
-import { createOrganizationAsset, getAllOrganizationsAssets } from '@/server/services/organizationAssetServices';
+import {
+  createOrganizationAsset,
+  getAllOrganizationsAssets,
+} from '@/server/services/organizationAssetServices';
 import { getServerSession } from 'next-auth';
 import { uploadToCloudinaryOrganizationAsset } from '@/server/services/upload';
 import { authOptions } from '@/lib/auth';
 import { AssetType } from '@/types/organization';
 
 export async function GET() {
-    try {
-        return NextResponse.json({ data: await getAllOrganizationsAssets() });
-    } catch (e: any) {
-        console.error('GET organization assets ERROR:', e);
-        return NextResponse.json({ message: e?.message || 'Server error' }, { status: 500 });
-    }
+  try {
+    return NextResponse.json({ data: await getAllOrganizationsAssets() });
+  } catch (e: any) {
+    console.error('GET organization assets ERROR:', e);
+    return NextResponse.json(
+      { message: e?.message || 'Server error' },
+      { status: 500 }
+    );
+  }
 }
 
 export async function POST(req: Request) {
@@ -21,10 +27,7 @@ export async function POST(req: Request) {
     const organization_id = session?.user?.organization_id;
 
     if (!organization_id) {
-      return NextResponse.json(
-        { message: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
     /* ================= FORM DATA ================= */
@@ -44,8 +47,7 @@ export async function POST(req: Request) {
 
     if (file.type.startsWith('image/')) {
       type = 'IMAGE';
-    } 
-    else if (
+    } else if (
       file.type.includes('font') ||
       file.name.endsWith('.ttf') ||
       file.name.endsWith('.woff') ||
@@ -76,7 +78,7 @@ export async function POST(req: Request) {
     /* ================= SAVE ================= */
     const organizationAsset = await createOrganizationAsset({
       name,
-      type, 
+      type,
       file_path: upload.url,
       organization_id,
     });
@@ -89,7 +91,6 @@ export async function POST(req: Request) {
       },
       { status: 201 }
     );
-
   } catch (e: any) {
     console.error('POST ORGANIZATION ASSET ERROR:', e);
 

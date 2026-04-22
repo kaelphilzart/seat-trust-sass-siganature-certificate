@@ -8,7 +8,16 @@ import { ICreateParticipant } from '@/types/participant';
 
 type ParticipantInput = Omit<ICreateParticipant, 'batch_id'>;
 
-export default function SixStep({ onBack, onFinish, batchId }: any) {
+type Step6Payload = {
+  participants: ParticipantInput[];
+};
+
+type Props = {
+  onBack: () => void;
+  onFinish: (data: Step6Payload) => void;
+};
+
+export default function SixStep({ onBack, onFinish }: Props) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [participants, setParticipants] = useState<ParticipantInput[]>([]);
@@ -16,10 +25,7 @@ export default function SixStep({ onBack, onFinish, batchId }: any) {
   const handleAdd = () => {
     if (!name || !email) return;
 
-    setParticipants((prev) => [
-      ...prev,
-      { name, email }
-    ]);
+    setParticipants((prev) => [...prev, { name, email }]);
 
     // reset form
     setName('');
@@ -72,7 +78,10 @@ export default function SixStep({ onBack, onFinish, batchId }: any) {
             <IconPlus className="w-4 h-4" />
             Tambah
           </Button>
-          <Button variant="secondary" onClick={() => onFinish(participants)}>
+          <Button
+            variant="secondary"
+            onClick={() => onFinish({ participants })}
+          >
             Selesai
           </Button>
         </div>
@@ -88,7 +97,7 @@ export default function SixStep({ onBack, onFinish, batchId }: any) {
           <div className="space-y-2">
             {participants.map((p, index) => (
               <div
-                key={index}
+                key={`${p.email}-${index}`}
                 className="flex items-center justify-between border rounded p-3"
               >
                 <div>

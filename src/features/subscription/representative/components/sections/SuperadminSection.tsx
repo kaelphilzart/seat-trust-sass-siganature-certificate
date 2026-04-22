@@ -1,7 +1,5 @@
-import React from 'react'
+import React from 'react';
 
 export default function SuperadminSection() {
-  return (
-    <div>SuperAdminSection</div>
-  )
+  return <div>SuperAdminSection</div>;
 }

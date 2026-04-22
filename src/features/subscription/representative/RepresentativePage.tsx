@@ -6,9 +6,5 @@ import { Skeleton } from '@/components/ui/skeleton';
 export default function OrganizationAssetPage() {
   const { section } = useRepresentative();
 
-  return (
-    <Suspense fallback={<Skeleton />}>
-      {section}
-    </Suspense>
-  );
+  return <Suspense fallback={<Skeleton />}>{section}</Suspense>;
 }

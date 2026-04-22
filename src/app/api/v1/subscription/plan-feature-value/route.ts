@@ -1,14 +1,20 @@
 import { NextResponse } from 'next/server';
-import { getAllPlanFeatureValues, createPlanFeatureValues } from '@/server/services/planFeatureValue';
+import {
+  getAllPlanFeatureValues,
+  createPlanFeatureValues,
+} from '@/server/services/planFeatureValue';
 import { ICreatePlanFeatureValue } from '@/types/plan-feature-value';
 
 export async function GET() {
-    try {
-        return NextResponse.json({ data: await getAllPlanFeatureValues() });
-    } catch (e: any) {
-        console.error('GET Plan Feature Values ERROR:', e);
-        return NextResponse.json({ message: e?.message || 'Server error' }, { status: 500 });
-    }
+  try {
+    return NextResponse.json({ data: await getAllPlanFeatureValues() });
+  } catch (e: any) {
+    console.error('GET Plan Feature Values ERROR:', e);
+    return NextResponse.json(
+      { message: e?.message || 'Server error' },
+      { status: 500 }
+    );
+  }
 }
 
 export async function POST(req: Request) {
@@ -26,7 +32,10 @@ export async function POST(req: Request) {
     for (const pfv of body) {
       if (!pfv.plan_id || !pfv.feature_id || pfv.value == null) {
         return NextResponse.json(
-          { message: 'Setiap item harus memiliki plan_id, feature_id, dan value' },
+          {
+            message:
+              'Setiap item harus memiliki plan_id, feature_id, dan value',
+          },
           { status: 400 }
         );
       }

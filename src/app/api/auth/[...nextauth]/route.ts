@@ -1,15 +1,13 @@
 // src/app/api/auth/[...nextauth]/route.ts
 
-
-
-import NextAuth, { type NextAuthOptions } from "next-auth";
-import CredentialsProvider from "next-auth/providers/credentials";
-import type { JWT } from "next-auth/jwt";
-import bcrypt from "bcrypt";
-import { db } from "@/lib/db";
-import type { User } from "@/server/models/auth/users";
-import type { OrganizationUser } from "@/server/models/organization/organization_users";
-import type { RowDataPacket } from "mysql2/promise";
+import NextAuth, { type NextAuthOptions } from 'next-auth';
+import CredentialsProvider from 'next-auth/providers/credentials';
+import type { JWT } from 'next-auth/jwt';
+import bcrypt from 'bcrypt';
+import { db } from '@/lib/db';
+import type { User } from '@/server/models/auth/users';
+import type { OrganizationUser } from '@/server/models/organization/organization_users';
+import type { RowDataPacket } from 'mysql2/promise';
 
 // ==============================
 // 🔥 EXTEND JWT TYPE (BIAR GA ERROR)
@@ -56,24 +54,25 @@ interface SessionUser {
 export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
-      name: "Credentials",
+      name: 'Credentials',
       credentials: {
-        email: { label: "Email", type: "text" },
-        password: { label: "Password", type: "password" },
+        email: { label: 'Email', type: 'text' },
+        password: { label: 'Password', type: 'password' },
       },
 
       async authorize(credentials) {
         if (!credentials) return null;
 
         const [rows] = await db.query<RowDataPacket[]>(
-          "SELECT * FROM users WHERE email = ? LIMIT 1",
+          'SELECT * FROM users WHERE email = ? LIMIT 1',
           [credentials.email]
         );
 
         const user = rows[0] as User;
 
         if (!user || !user.is_active) return null;
-        if (!(await bcrypt.compare(credentials.password!, user.password!))) return null;
+        if (!(await bcrypt.compare(credentials.password!, user.password!)))
+          return null;
 
         return {
           id: user.id,
@@ -94,19 +93,19 @@ export const authOptions: NextAuthOptions = {
         t.id = user.id;
 
         const [rows] = await db.query<RowDataPacket[]>(
-          "SELECT * FROM organization_users WHERE user_id = ? LIMIT 1",
+          'SELECT * FROM organization_users WHERE user_id = ? LIMIT 1',
           [user.id]
         );
 
         const org_user = rows[0] as OrganizationUser | undefined;
 
-        t.role = org_user?.role ?? "SUPERADMIN";
+        t.role = org_user?.role ?? 'SUPERADMIN';
         t.organization_id = org_user?.organization_id ?? null;
 
         if (org_user?.organization_id) {
           // 🔥 GET ORGANIZATION
           const [orgRows] = await db.query<RowDataPacket[]>(
-            "SELECT id, name FROM organizations WHERE id = ? LIMIT 1",
+            'SELECT id, name FROM organizations WHERE id = ? LIMIT 1',
             [org_user.organization_id]
           );
 
@@ -131,7 +130,7 @@ export const authOptions: NextAuthOptions = {
 
           if (planId) {
             const [planRows] = await db.query<RowDataPacket[]>(
-              "SELECT id, name FROM plans WHERE id = ? LIMIT 1",
+              'SELECT id, name FROM plans WHERE id = ? LIMIT 1',
               [planId]
             );
 
@@ -166,10 +165,13 @@ export const authOptions: NextAuthOptions = {
               [planId]
             );
 
-            t.features = (featuresRows as any[]).reduce((acc, f) => {
-              acc[f.feature_key] = f.value;
-              return acc;
-            }, {} as Record<string, string>);
+            t.features = (featuresRows as any[]).reduce(
+              (acc, f) => {
+                acc[f.feature_key] = f.value;
+                return acc;
+              },
+              {} as Record<string, string>
+            );
           } else {
             t.features = {};
           }
@@ -190,8 +192,8 @@ export const authOptions: NextAuthOptions = {
 
       session.user = {
         ...(session.user ?? {}),
-        id: t.id ?? "guest",
-        role: t.role ?? "guest",
+        id: t.id ?? 'guest',
+        role: t.role ?? 'guest',
         organization_id: t.organization_id ?? null,
         features: t.features ?? {},
         organization: t.organization ?? null,
@@ -202,11 +204,11 @@ export const authOptions: NextAuthOptions = {
   },
 
   session: {
-    strategy: "jwt",
+    strategy: 'jwt',
   },
 
   pages: {
-    signIn: "/",
+    signIn: '/',
   },
 };
 

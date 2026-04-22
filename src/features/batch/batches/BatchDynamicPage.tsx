@@ -8,11 +8,7 @@ interface Props {
 }
 
 export default function BatchDynamicPage({ batchId }: Props) {
-  const { section } =  useBatchDynamic(batchId);
+  const { section } = useBatchDynamic(batchId);
 
-  return (
-    <Suspense fallback={<Skeleton />}>
-      {section}
-    </Suspense>
-  );
+  return <Suspense fallback={<Skeleton />}>{section}</Suspense>;
 }

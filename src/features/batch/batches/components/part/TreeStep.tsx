@@ -19,9 +19,7 @@ export default function TreeStep({
   if (!batchId) {
     return (
       <div className="p-6 max-w-4xl mx-auto text-center space-y-4">
-        <div className="text-red-500 font-medium">
-          Batch tidak ditemukan
-        </div>
+        <div className="text-red-500 font-medium">Batch tidak ditemukan</div>
         <div className="text-sm text-gray-500">
           Silakan kembali ke step sebelumnya dan buat batch terlebih dahulu
         </div>
@@ -40,9 +38,7 @@ export default function TreeStep({
         <Button variant="ghost" onClick={onBack}>
           Kembali
         </Button>
-        <div className="text-sm text-black/45">
-          Step 3 — Setup Template?
-        </div>
+        <div className="text-sm text-black/45">Step 3 — Setup Template?</div>
       </div>
 
       {/* PANEL */}
@@ -54,13 +50,12 @@ export default function TreeStep({
         </div>
 
         <div className="text-sm text-gray-500">
-          Batch ID sudah tersedia, kamu bisa lanjut ke setup template atau skip ke participant.
+          Batch ID sudah tersedia, kamu bisa lanjut ke setup template atau skip
+          ke participant.
         </div>
 
         <div className="flex justify-center gap-4 mt-4">
-          <Button onClick={() => onNext(true)}>
-            Iya, setup template
-          </Button>
+          <Button onClick={() => onNext(true)}>Iya, setup template</Button>
 
           <Button variant="outline" onClick={() => onNext(false)}>
             Lewati

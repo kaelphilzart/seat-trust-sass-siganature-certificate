@@ -1,7 +1,11 @@
 import { useMemo } from 'react';
 import useSWR, { mutate } from 'swr';
 import { endpoints, request } from '@/utils/helper-server';
-import { ICreateOrganization, IOrganization, IUpdateOrganization } from '@/types/organization';
+import {
+  ICreateOrganization,
+  IOrganization,
+  IUpdateOrganization,
+} from '@/types/organization';
 import { ICreateSubscription } from '@/types/subscription';
 import { ApiResponse } from '@/types/request';
 import { SWR_KEYS } from '@/lib/swrKeys';
@@ -20,18 +24,23 @@ const options = {
 // GET ALL ORGANIZATIONS
 // ===========================
 export function useGetAllOrganizations() {
-  const { data, error, isLoading, isValidating } = useSWR<{ data: IOrganization[] }>(
+  const { data, error, isLoading, isValidating } = useSWR<{
+    data: IOrganization[];
+  }>(
     SWR_KEYS.organizations(),
     (url) => request<{ data: IOrganization[] }>(url),
     options
   );
 
-  const memoized = useMemo(() => ({
-    organizations: (data?.data || []) as IOrganization[],
-    organizationsLoading: isLoading,
-    organizationsIsValidating: isValidating,
-    organizationsError: error,
-  }), [data, isLoading, isValidating, error]);
+  const memoized = useMemo(
+    () => ({
+      organizations: (data?.data || []) as IOrganization[],
+      organizationsLoading: isLoading,
+      organizationsIsValidating: isValidating,
+      organizationsError: error,
+    }),
+    [data, isLoading, isValidating, error]
+  );
 
   return memoized;
 }
@@ -43,11 +52,14 @@ export function useGetOneOrganization(id?: string) {
     (url: string) => request<IOrganization>(url)
   );
 
-  const memoized = useMemo(() => ({
-    organizationOne: data || null,
-    organizationOneLoading: isLoading,
-    organizationOneError: !!error,
-  }), [data, isLoading, error]);
+  const memoized = useMemo(
+    () => ({
+      organizationOne: data || null,
+      organizationOneLoading: isLoading,
+      organizationOneError: !!error,
+    }),
+    [data, isLoading, error]
+  );
 
   return memoized;
 }
@@ -72,7 +84,9 @@ export async function createOrganization(
     const organization = res.data;
 
     if (!organization?.id) {
-      throw new Error('Organization gagal dibuat, organization_id tidak tersedia');
+      throw new Error(
+        'Organization gagal dibuat, organization_id tidak tersedia'
+      );
     }
     if (subscription) {
       await request<ICreateSubscription>(
@@ -86,10 +100,8 @@ export async function createOrganization(
     await mutate(SWR_KEYS.organizations());
 
     return organization;
-
-  } catch (error: any) {
-    console.error('Error saat membuat organization:', error.message || error);
-    return false;
+  } catch (error: unknown) {
+    throw error;
   }
 }
 // ===========================
@@ -99,7 +111,6 @@ export const editOrganization = async (
   id: string,
   data: Partial<IUpdateOrganization>
 ) => {
-
   const res = await request<ApiResponse<IOrganization>>(
     SWR_KEYS.organizationDetail(id),
     {
@@ -120,10 +131,9 @@ export const editOrganization = async (
 // DELETE ORGANIZATION
 // ===========================
 export const deleteOrganization = async (id: string) => {
-  const res = await request<ApiResponse>(
-    SWR_KEYS.organizationDetail(id),
-    { method: 'DELETE' }
-  );
+  const res = await request<ApiResponse>(SWR_KEYS.organizationDetail(id), {
+    method: 'DELETE',
+  });
   await Promise.all([
     mutate(SWR_KEYS.organizationDetail(id)),
     mutate(SWR_KEYS.organizations()),

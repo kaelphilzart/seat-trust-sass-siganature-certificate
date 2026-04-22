@@ -1,6 +1,4 @@
-
-import { endpoints, request } from '@/utils/helper-server';
-
+import { endpoints } from '@/utils/helper-server';
 
 // base URL API
 const URL_CERTIFICATE_DOWNLOAD = endpoints.certificate.base;
@@ -35,7 +33,6 @@ export const downloadCertificate = async (id: string) => {
     link.remove();
 
     window.URL.revokeObjectURL(url);
-
   } catch (err) {
     console.error(err);
     throw err;
@@ -79,7 +76,6 @@ export const downloadCertificateParticipant = async (
   }
 };
 
-
 export const downloadCertificateBulk = async (
   batchId: string,
   participantIds: string[]
@@ -87,9 +83,7 @@ export const downloadCertificateBulk = async (
   if (!batchId || !participantIds?.length) return;
 
   try {
-    const query = participantIds
-      .map((id) => `participant_id=${id}`)
-      .join('&');
+    const query = participantIds.map((id) => `participant_id=${id}`).join('&');
 
     const res = await fetch(
       `${URL_CERTIFICATE_DOWNLOAD_PARTICIPANT}/${batchId}?${query}`
